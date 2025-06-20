@@ -4,16 +4,20 @@ from dotenv import load_dotenv
 import berserk
 import chess, chess.engine
 
+
 load_dotenv() # to read .env
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
 if not API_TOKEN:
     raise RuntimeError("LICHESS_BOT_TOKEN not set in .env")
 
+import openings_explorer
+
+
 STOCKFISH_PATH = "/usr/games/stockfish"
 # TODO check if the binary actually exists in this path, if not, do "which stockfish" and use that path instead
 
 OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
-TIME_PER_MOVE = 5 # just to not get rate limited
+TIME_PER_MOVE = 3 # just to not get rate limited
 CHALLENGE = 100 # how much to increase bot ELO compared to player's
 
 session = berserk.TokenSession(API_TOKEN)
@@ -34,7 +38,6 @@ def play_game(game_id):
     # Launch engine
     engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
     stream = client.bots.stream_game_state(game_id)
-    board  = chess.Board()
 
     # First message contains players’ ratings
     start = next(stream)
@@ -90,10 +93,18 @@ def play_game(game_id):
 
     if board.turn == our_color:
         print("It's the BOT's turn!")
-        result = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
-        client.bots.make_move(game_id, result.move.uci())
-        board.push(result.move)  # update our local board
-        print(f"-> (first move) {result.move.uci()}")
+        chosen_move_uci = openings_explorer.get_book_move(board, top_n=5)
+        if chosen_move_uci is None:
+            engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
+            chosen_move_uci = engine_move.move.uci()
+            client.bots.make_move(game_id, chosen_move_uci)
+            board.push_uci(chosen_move_uci)
+            print(f"-> (first move from engine) {chosen_move_uci}")
+        else:
+            client.bots.make_move(game_id, chosen_move_uci)
+            board.push_uci(chosen_move_uci)  # update our local board
+            print(f"-> (first move from openings database) {chosen_move_uci}")
+
     else:
         print("It's the player's turn!")
 
@@ -112,9 +123,17 @@ def play_game(game_id):
 
         # Only play when it's our turn
         if board.turn == our_color:
-            result = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
-            client.bots.make_move(game_id, result.move.uci())
-            print(f"-> {result.move.uci()}")
+            chosen_move_uci = openings_explorer.get_book_move(board)
+            if chosen_move_uci is None:
+                engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
+                chosen_move_uci = engine_move.move.uci()
+                client.bots.make_move(game_id, chosen_move_uci)
+                board.push_uci(chosen_move_uci)
+                print(f"-> (from engine) {chosen_move_uci}")
+            else:
+                client.bots.make_move(game_id, chosen_move_uci)
+                board.push_uci(chosen_move_uci)  # update our local board
+                print(f"-> (from openings database) {chosen_move_uci}")
 
     engine.quit()
 
