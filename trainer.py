@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 import berserk
 import chess, chess.engine
-
+from dataclasses import dataclass, field
+from typing import List
 
 load_dotenv() # to read .env
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
@@ -11,7 +12,6 @@ if not API_TOKEN:
     raise RuntimeError("LICHESS_BOT_TOKEN not set in .env")
 
 import openings_explorer
-
 
 STOCKFISH_PATH = "/usr/games/stockfish"
 # TODO check if the binary actually exists in this path, if not, do "which stockfish" and use that path instead
@@ -22,6 +22,65 @@ CHALLENGE = 100 # how much to increase bot ELO compared to player's
 
 session = berserk.TokenSession(API_TOKEN)
 client  = berserk.Client(session=session)
+
+@dataclass
+class BotProfile:
+    chosen_white: List[str] = field(default_factory=list)
+    chosen_black: List[str] = field(default_factory=list)
+
+    white_openings = ["e4 - King's Pawn Game",
+                      "d4 - Queen's Pawn Game",
+                      "c4 - English Opening",
+                      "d4 d5 c4 - Queen's Gambit",
+                      "d4 d5 Bf4 - Queen's Pawn Game: Accelerated London System"
+                      ]
+    black_openings = ["e4 e5 - Kings's Pawn Game",
+                      "e4 c5 - Sicilian Defense",
+                      "e4 d5 - Scandinavian Defense",
+                      "e4 e6 - French Defense",
+                      "e4 c6 - Caro-Kann Defence"
+                      ]
+
+    def get_openings_choice_from_user(self):
+        def choose(options, color_name):
+            while True:
+                print(f"Select your {color_name} openings by number (comma-separated):")
+                for idx, opening in enumerate(options, start=1):
+                    print(f"  {idx}. {opening}")
+                user_input = input(f"Your {color_name} choices: ").strip()
+
+                # split on commas and try to parse integers
+                try:
+                    picks = [int(tok) for tok in user_input.split(',') if tok.strip()]
+                except ValueError:
+                    print(" -> Please enter only numbers, separated by commas.")
+                    continue
+
+                # check range validity
+                if any(p < 1 or p > len(options) for p in picks):
+                    print(f" -> Each number must be between 1 and {len(options)}.")
+                    continue
+
+                # dedupe
+                seen = set()
+                selection = []
+                for p in picks:
+                    if p not in seen:
+                        seen.add(p)
+                        selection.append(options[p - 1])
+                return selection
+
+        self.chosen_white = choose(self.white_openings, "White")
+        self.chosen_black = choose(self.black_openings, "Black")
+
+    @staticmethod
+    def strip_opening_name(opening: str) -> str:
+        if "-" not in opening:
+            return opening
+        return opening.split("-", 1)[1].strip()
+
+    def get_clean_openings(self):
+        return [self.strip_opening_name(o) for o in self.chosen_white], [self.strip_opening_name(o) for o in self.chosen_black]
 
 def handle_events():
     for event in client.bots.stream_incoming_events():
@@ -138,5 +197,9 @@ def play_game(game_id):
     engine.quit()
 
 if __name__ == "__main__":
-    print("Starting bot...")
+    profile = BotProfile()
+
+    profile.get_openings_choice_from_user()
+    print("You will play: ", profile.get_clean_openings())
+
     handle_events()

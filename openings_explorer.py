@@ -12,10 +12,10 @@ session = berserk.TokenSession(API_TOKEN)
 client = berserk.Client(session=session)
 explorer = client.opening_explorer
 
-
 def fetch_book_moves(play, top_n):
     url = "https://explorer.lichess.ovh/lichess"
     params = {"play": play, "moves": top_n}
+    print(params)
     # headers = {"Authorization": f"Bearer {API_TOKEN}"}
     resp = requests.get(url, params=params) #, headers=headers)
     return resp.json().get("moves", [])
@@ -30,6 +30,7 @@ def get_book_move(board, max_ply=20, top_n=3): # top_n is the number of moves to
 
     # response = explorer.get_lichess_games(play=play, moves=top_n)
     response = fetch_book_moves(play, top_n)
+    print(response)
     candidates = [entry['uci'] for entry in response]
 
     if not candidates:
