@@ -17,7 +17,7 @@ explorer = client.opening_explorer
 
 def fetch_book_moves(play, top_n):
     params = {"play": play, "moves": top_n}
-    print(params)
+    # print(params)
     # headers = {"Authorization": f"Bearer {API_TOKEN}"}
     resp = requests.get(lichess_explorer_url, params=params) #, headers=headers)
     return resp.json().get("moves", [])
@@ -27,8 +27,8 @@ def filter_by_preferences(moves, prefs):
     """
     Given a list of opening move dicts and a list of preferred opening substrings, return only those dicts whose opening.name contains any of the prefs
     """
-    print("MOVES", moves)
-    print("PREFS", prefs)
+    # print("MOVES", moves)
+    # print("PREFS", prefs)
     if not prefs:
         return moves
 
