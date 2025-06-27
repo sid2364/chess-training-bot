@@ -75,7 +75,7 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=10): # top_n
 
     # figure out which preference list to use
     white_prefs, black_prefs = bot_profile.get_clean_openings()
-    print(white_prefs, black_prefs)
+    # print(white_prefs, black_prefs)
     prefs = white_prefs if bot_profile.our_color == chess.WHITE else black_prefs
 
     filtered = filter_by_preferences(response, prefs)
@@ -88,5 +88,5 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=10): # top_n
         return None
 
     choice = random.choice(candidates)
-    print(f"Candidate moves before filtering: {all_candidates},\n after filtering: {candidates},\n chose: {choice}")
+    # print(f"Candidate moves before filtering: {all_candidates},\n after filtering: {candidates},\n chose: {choice}")
     return choice
