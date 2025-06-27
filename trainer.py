@@ -231,6 +231,9 @@ def play_game(game_id, bot_profile: BotProfile):
             chosen_move_uci = openings_explorer.get_book_move(board, bot_profile)
             if chosen_move_uci is None:
                 engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
+                if engine_move.move is None: # game is over
+                    print("You won!")
+                    break
                 chosen_move_uci = engine_move.move.uci()
                 make_move_on_board(board, game_id, chosen_move_uci)
                 print(f"-> (from engine) {chosen_move_uci}")
