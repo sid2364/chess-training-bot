@@ -17,7 +17,7 @@ STOCKFISH_PATH = "/usr/games/stockfish"
 # TODO check if the binary actually exists in this path, if not, do "which stockfish" and use that path instead
 
 OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
-TIME_PER_MOVE = 3 # just to not get rate limited
+TIME_PER_MOVE = 5
 # CHALLENGE = 100 # how much to increase bot ELO compared to player's
 
 session = berserk.TokenSession(API_TOKEN)
@@ -27,13 +27,17 @@ white_openings = ["e4 - King's Pawn Game",
                   "d4 - Queen's Pawn Game",
                   "c4 - English Opening",
                   "d4 d5 c4 - Queen's Gambit",
-                  "d4 d5 Bf4 - Queen's Pawn Game: Accelerated London System"
+                  "d4 d5 Bf4 - Queen's Pawn Game: Accelerated London System",
+                  "e4 e5 Nc3 - Vienna Game",
+                  "e4 e5 f4 - King's Gambit"
                   ]
 black_openings = ["e4 e5 - Kings's Pawn Game",
                   "e4 c5 - Sicilian Defense",
                   "e4 d5 - Scandinavian Defense",
                   "e4 e6 - French Defense",
-                  "e4 c6 - Caro-Kann Defense"
+                  "e4 c6 - Caro-Kann Defense",
+                  "d4 Nf6 - Indian Defense"
+                  "d4 g6 - Queen's Pawn Game: Modern Defense"
                   ]
 
 
@@ -90,7 +94,7 @@ class BotProfile:
         # self.challenge = int(input(f"Relative to your ELO, what should the BOT's ELO be? ").strip())
         # new challenge-rating prompt with default = 0
         while True:
-            user_input = input("Relative to your ELO, what should the BOT's ELO be? (100, -50, etc.) ").strip()
+            user_input = input("Relative to your ELO, what should the BOT's ELO be? (+/- 100): ").strip()
             if user_input in ("", "0"):
                 self.challenge = 0
                 break
@@ -231,7 +235,7 @@ def play_game(game_id, bot_profile: BotProfile):
             chosen_move_uci = openings_explorer.get_book_move(board, bot_profile)
             if chosen_move_uci is None:
                 engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
-                if engine_move.move is None: # game is over
+                if engine_move.move is None: # The game is over!
                     print("You won!")
                     break
                 chosen_move_uci = engine_move.move.uci()
