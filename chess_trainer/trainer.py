@@ -48,12 +48,12 @@ white_openings = ["e4 - King's Pawn Game",
                   "e4 e5 Nc3 - Vienna Game",
                   "e4 e5 f4 - King's Gambit"
                   ]
-black_openings = ["e4 e5 - Kings's Pawn Game",
+black_openings = ["e4 e5 - King's Pawn Game",
                   "e4 c5 - Sicilian Defense",
                   "e4 d5 - Scandinavian Defense",
                   "e4 e6 - French Defense",
                   "e4 c6 - Caro-Kann Defense",
-                  "d4 Nf6 - Indian Defense"
+                  "d4 Nf6 - Indian Defense",
                   "d4 g6 - Queen's Pawn Game: Modern Defense"
                   ]
 
@@ -77,8 +77,10 @@ class BotProfile:
                 user_input = input(f"Your {color_name} choices: ").strip()
 
                 # default or explicit “no pref”
+                # pick the "top 3" (according to me)
+                # so we don't play random garbage openings with early queen out, etc.
                 if user_input == "" or user_input == "0":
-                    return []
+                    return options[:3]
 
                 # parse comma-separated ints
                 picks = []
