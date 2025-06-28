@@ -93,9 +93,10 @@ class BotProfile:
                     print(f" -> Each number must be between 0 and {len(options)}.")
                     continue
 
-                # any zero means no preference
+                # any zero means no preference, so pick the "top 3" (according to me)
+                # so we don't play random garbage openings with early queen out, etc.
                 if 0 in picks:
-                    return []
+                    return options[:3]
 
                 # dedupe & map to openings
                 seen = set()
