@@ -1,25 +1,45 @@
 import random
-import berserk
 import os
-from dotenv import load_dotenv
-import requests
-import chess
+try:  # optional dependency for reading .env
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency
+    def load_dotenv() -> None:
+        pass
+try:  # optional dependency for network requests
+    import requests
+except Exception:  # pragma: no cover - optional dependency
+    requests = None
+try:  # optional dependency for board representation
+    import chess
+except Exception:  # pragma: no cover - optional dependency
+    chess = None
 
-from trainer import BotProfile
+try:  # berserk is optional during testing
+    import berserk
+except Exception:  # pragma: no cover - optional dependency
+    berserk = None
 
-load_dotenv() # to read .env
+"""Utilities for fetching and filtering opening moves from Lichess."""
+
+from .trainer import BotProfile
+
+load_dotenv()  # read .env for API token if present
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
 lichess_explorer_url = "https://explorer.lichess.ovh/lichess"
 
-session = berserk.TokenSession(API_TOKEN)
-client = berserk.Client(session=session)
-explorer = client.opening_explorer
+if berserk is not None and API_TOKEN:
+    session = berserk.TokenSession(API_TOKEN)
+    client = berserk.Client(session=session)
+    explorer = client.opening_explorer
+else:  # pragma: no cover - used when testing without network
+    session = client = explorer = None
 
 def fetch_book_moves(play, top_n):
+    if requests is None:
+        raise RuntimeError("requests library is required to fetch openings")
+
     params = {"play": play, "moves": top_n}
-    # print(params)
-    # headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    resp = requests.get(lichess_explorer_url, params=params) #, headers=headers)
+    resp = requests.get(lichess_explorer_url, params=params)
     return resp.json().get("moves", [])
 
 
@@ -76,7 +96,10 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=10): # top_n
     # figure out which preference list to use
     white_prefs, black_prefs = bot_profile.get_clean_openings()
     # print(white_prefs, black_prefs)
-    prefs = white_prefs if bot_profile.our_color == chess.WHITE else black_prefs
+    if chess is None:
+        prefs = white_prefs
+    else:
+        prefs = white_prefs if bot_profile.our_color == chess.WHITE else black_prefs
 
     filtered = filter_by_preferences(response, prefs)
     unfiltered = filter_by_preferences(response, None)

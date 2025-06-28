@@ -1,17 +1,31 @@
 #!/usr/bin/env python3
 import os
-from dotenv import load_dotenv
-import berserk
-import chess, chess.engine
+
+try:  # optional dependency for .env support
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency
+    def load_dotenv() -> None:
+        pass
+
+try:  # optional network dependency
+    import berserk
+except Exception:  # pragma: no cover - optional dependency
+    berserk = None
+
+try:  # optional chess engine library
+    import chess
+    import chess.engine
+except Exception:  # pragma: no cover - optional dependency
+    chess = None
 from dataclasses import dataclass, field
 from typing import List
 
-load_dotenv() # to read .env
+load_dotenv()  # read token from environment if available
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
-if not API_TOKEN:
-    raise RuntimeError("LICHESS_BOT_TOKEN not set in .env")
 
-import openings_explorer
+"""Main bot training loop and event handling."""
+
+from . import openings_explorer
 
 STOCKFISH_PATH = "/usr/games/stockfish"
 # TODO check if the binary actually exists in this path, if not, do "which stockfish" and use that path instead
@@ -20,8 +34,11 @@ OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
 TIME_PER_MOVE = 5
 # CHALLENGE = 100 # how much to increase bot ELO compared to player's
 
-session = berserk.TokenSession(API_TOKEN)
-client  = berserk.Client(session=session)
+if berserk is not None and API_TOKEN:
+    session = berserk.TokenSession(API_TOKEN)
+    client = berserk.Client(session=session)
+else:  # pragma: no cover - allows running tests without optional deps
+    session = client = None
 
 white_openings = ["e4 - King's Pawn Game",
                   "d4 - Queen's Pawn Game",
@@ -76,9 +93,10 @@ class BotProfile:
                     print(f" -> Each number must be between 0 and {len(options)}.")
                     continue
 
-                # any zero means no preference
+                # any zero means no preference, so pick the "top 3" (according to me)
+                # so we don't play random garbage openings with early queen out, etc.
                 if 0 in picks:
-                    return []
+                    return options[:3]
 
                 # dedupe & map to openings
                 seen = set()
@@ -247,19 +265,29 @@ def play_game(game_id, bot_profile: BotProfile):
 
     engine.quit()
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for running the training bot via ``python -m``."""
+
     profile = BotProfile()
 
     try:
         profile.get_openings_choice_from_user()
     except KeyboardInterrupt:
         print("Exiting")
-        exit()
+        return
+
     white, black = profile.get_clean_openings()
-    print(f"The bot will play:-\n as White -> {', '.join(white)}\n as Black -> {', '.join(black)}")
+    print(
+        "The bot will play:-\n as White -> {}\n as Black -> {}".format(
+            ", ".join(white), ", ".join(black)
+        )
+    )
 
     try:
         handle_events(bot_profile=profile)
     except KeyboardInterrupt:
         print("Exiting")
-        exit()
+
+
+if __name__ == "__main__":
+    main()
