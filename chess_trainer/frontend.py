@@ -66,7 +66,7 @@ def create_challenge(username: str) -> Optional[str]:
     if resp.status_code not in (200, 201):
         return None
     json_data = resp.json()
-    return json_data.get("challenge", {}).get("url")
+    return json_data.get("url", {})
 
 
 @app.get("/")
