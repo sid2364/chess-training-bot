@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 import webbrowser
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 from flask import Flask, request
 import requests
@@ -83,11 +83,10 @@ def start() -> str:
     PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
     username = request.form.get("username", "")
     url = create_challenge(username)
-    return url or "Failed to create challenge"
+    if not url:
+        return "Failed to create challenge"
 
-
-def run_server() -> None:
-    """Start the frontend server and launch the default browser."""
+    webbrowser.open(url)
 
     def on_game_start(game_id: str) -> None:
         webbrowser.open(f"https://lichess.org/{game_id}")
@@ -96,6 +95,12 @@ def run_server() -> None:
         target=handle_events, args=(PROFILE, on_game_start), daemon=True
     )
     thread.start()
+    return "Challenge created. Please accept it in the opened tab."
+
+
+def run_server() -> None:
+    """Start the frontend server and launch the default browser."""
+
     webbrowser.open("http://localhost:8000/")
     app.run(host="localhost", port=8000)
 

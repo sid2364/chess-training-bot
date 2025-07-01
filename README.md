@@ -36,7 +36,7 @@ If you prefer a small web UI instead of the command line prompts run:
 python -m chess_trainer.frontend
 ```
 
-Your browser will open `http://localhost:8000/` where you can pick your preferred openings and enter the username you wish to challenge. After the challenge is accepted the Lichess game page will open automatically.
+Your browser will open `http://localhost:8000/` where you can pick your preferred openings and enter the username you wish to challenge. When you submit the form, the challenge URL from Lichess opens in a new tab so you can accept it. The game page is then opened automatically once Lichess starts the game.
 
 ## Files
 
