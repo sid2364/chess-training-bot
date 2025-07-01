@@ -21,7 +21,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 """Utilities for fetching and filtering opening moves from Lichess."""
 
-from .trainer import BotProfile
+from .bot_profile import BotProfile
 
 load_dotenv()  # read .env for API token if present
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
