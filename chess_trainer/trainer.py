@@ -168,7 +168,7 @@ class BotProfile:
 
 ############################################### Core Bot Logic ####################################
 
-def handle_events(bot_profile:BotProfile=BotProfile()):
+def handle_events(bot_profile: BotProfile = BotProfile(), on_game_start=None):
     for event in client.bots.stream_incoming_events():
         t = event["type"]
         if t == "challenge":
@@ -176,6 +176,11 @@ def handle_events(bot_profile:BotProfile=BotProfile()):
             print("Accepted challenge!")
         elif t == "gameStart":
             game_id = event["game"]["id"]
+            if on_game_start is not None:
+                try:
+                    on_game_start(game_id)
+                except Exception:
+                    pass
             print(f"Game started: {game_id}")
             play_game(game_id, bot_profile)
 
