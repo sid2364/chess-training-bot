@@ -57,7 +57,6 @@ black_openings = ["e4 e5 - King's Pawn Game",
                   "d4 g6 - Queen's Pawn Game: Modern Defense"
                   ]
 
-
 @dataclass
 class BotProfile:
     chosen_white: List[str] = field(default_factory=list)
