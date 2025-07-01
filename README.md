@@ -41,6 +41,7 @@ Your browser will open `http://localhost:8000/` where you can pick your preferre
 ## Files
 
 - `chess_trainer/trainer.py` – main entry point that handles events and engine interaction.
+- `chess_trainer/bot_profile.py` – dataclass describing the bot's settings and default openings.
 - `chess_trainer/openings_explorer.py` – helper module that queries the opening explorer and filters moves by your preferences.
 - `chess_trainer/frontend.py` – simple Flask server for configuring and challenging the bot.
 - `setup.sh` – installs Stockfish 16 and the required Python packages.

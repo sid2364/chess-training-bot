@@ -9,11 +9,9 @@ import requests
 
 from .trainer import (
     API_TOKEN,
-    BotProfile,
     handle_events,
-    white_openings,
-    black_openings,
 )
+from .bot_profile import BotProfile, white_openings, black_openings
 
 app = Flask(__name__)
 PROFILE = BotProfile()
