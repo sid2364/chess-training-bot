@@ -83,7 +83,7 @@ def filter_by_preferences(moves, prefs):
     # no named openings so just return everything sinc we can't filter
     return moves
 
-def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=10): # top_n is the number of moves to choose from
+def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5): # top_n is the number of moves to choose from
     ply = len(board.move_stack)
     if ply >= max_ply:
         return None
@@ -111,5 +111,5 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=10): # top_n
         return None
 
     choice = random.choice(candidates)
-    # print(f"Candidate moves before filtering: {all_candidates},\n after filtering: {candidates},\n chose: {choice}")
+    print(f"Candidate moves before filtering: {all_candidates},\n after filtering: {candidates},\n chose: {choice}")
     return choice
