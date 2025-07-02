@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from flask import Flask, request
 import requests
+import html
 
 from .trainer import (
     API_TOKEN,
@@ -40,16 +41,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </body>
 </html>"""
 
-
 def build_options(name_list: List[str], field: str) -> str:
     out = []
     for opening in name_list:
-        safe = opening.replace('"', '&quot;')
+        value = html.escape(opening, quote=True)
+        label = html.escape(opening)
         out.append(
-            f"<label><input type='checkbox' name='{field}' value='{safe}'> {safe}</label><br>"
+            f"<label><input type='checkbox' name='{field}' value='{value}'> {label}</label><br>"
         )
     return "\n".join(out)
-
 
 def create_challenge(username: str) -> Optional[str]:
     """Send a challenge to ``username`` using the Lichess API."""
@@ -82,6 +82,8 @@ def start() -> str:
     PROFILE.chosen_black = request.form.getlist("black")
     PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
     username = request.form.get("username", "")
+
+    print(PROFILE)
     url = create_challenge(username)
     if not url:
         return "Failed to create challenge"

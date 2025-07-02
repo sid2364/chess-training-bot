@@ -66,6 +66,7 @@ def play_game(game_id, bot_profile: BotProfile):
     """
     Main game loop to play
     """
+    print("in play_game, bot_profile=", bot_profile)
     # Launch engine
     engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
     stream = client.bots.stream_game_state(game_id)
@@ -73,7 +74,7 @@ def play_game(game_id, bot_profile: BotProfile):
     # First message contains players’ ratings
     start = next(stream)
     bot_profile.determine_color_and_opp_rating(start)
-    print("our_color, opp_rating", bot_profile.our_color, bot_profile.opp_rating)
+    # print("our_color, opp_rating", bot_profile.our_color, bot_profile.opp_rating)
 
     print(f"Playing as {'White' if bot_profile.our_color else 'Black'} vs {bot_profile.opp_rating}-rated opponent")
     bot_profile.opp_rating += bot_profile.challenge
