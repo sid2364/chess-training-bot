@@ -25,7 +25,7 @@ from .bot_profile import BotProfile
 
 load_dotenv()  # read .env for API token if present
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
-lichess_explorer_url = "https://explorer.lichess.ovh/lichess"
+lichess_explorer_url = "https://explorer.lichess.ovh/masters"
 
 if berserk is not None and API_TOKEN:
     session = berserk.TokenSession(API_TOKEN)

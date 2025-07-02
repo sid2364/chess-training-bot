@@ -1,6 +1,6 @@
 # Chess Trainer Bot
 
-A simple chess bot for [lichess.org](https://lichess.org) that responds to game events and plays moves using Stockfish and the lichess opening explorer. The bot will try to match the opponent's rating so that you always get a fair game.
+A simple chess bot for [lichess.org](https://lichess.org) that plays moves using the lichess opening explorer with the Masters' database. Once we're out of book moves, the bot will try to match the opponent's rating so that you always get a fair game, using Stockfish.
 
 ## Setup
 
