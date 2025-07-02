@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chess Training Bot Setup</title>
+  <style>
+    :root {
+      /* Dark mode palette */
+      --bg: #121212;
+      --container-bg: #1e1e1e;
+      --fg: #e0e0e0;
+      --accent: #3399ff;
+      --accent-hover: #287ac6;
+      --border: #333;
+      --radius: 6px;
+      --gap: 1.5rem;
+      --pad: 2rem;
+      --font: 1rem;
+      --maxw: 1100px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: var(--pad);
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: var(--maxw);
+      background: var(--container-bg);
+      padding: var(--pad);
+      border-radius: calc(var(--radius) * 1.5);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: var(--gap);
+    }
+    .sections {
+      display: flex;
+      gap: var(--gap);
+      flex-wrap: nowrap;
+    }
+    .section {
+      flex: 1 1 45%;
+      min-width: 300px;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 0.75rem;
+      color: var(--fg);
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--gap);
+    }
+    .field-row {
+      display: flex;
+      gap: var(--gap);
+      margin-top: var(--gap);
+      flex-wrap: nowrap;
+    }
+    label {
+      font-size: var(--font);
+      flex: 1 1 200px;
+      display: flex;
+      flex-direction: column;
+    }
+    input[type='text'],
+    input[type='number'] {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #2b2b2b;
+      color: var(--fg);
+      font-size: var(--font);
+    }
+    input::placeholder {
+      color: #888;
+    }
+    button {
+      width: 100%;
+      padding: 1rem;
+      margin-top: var(--gap);
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background: var(--accent-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chess Training Bot Setup</h1>
+    <form action="/start" method="post">
+      <div class="sections">
+        <div class="section">
+          <h2>White openings</h2>
+          <div class="options-grid">
+            {{ white_options|safe }}
+          </div>
+        </div>
+        <div class="section">
+          <h2>Black openings</h2>
+          <div class="options-grid">
+            {{ black_options|safe }}
+          </div>
+        </div>
+      </div>
+        <hr>
+      <div class="field-row">
+        <label for="challenge">Challenge rating offset
+          <input id="challenge" type="number" name="challenge" value="0">
+        </label>
+        <label for="username">Your Lichess username
+          <input id="username" type="text" name="username" value="WolfpackTwentyThree" placeholder="e.g. sid123">
+        </label>
+      </div>
+      <button type="submit">Start Game</button>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,6 +1,10 @@
 # Chess Training Bot
 
-A simple chess bot for [lichess.org](https://lichess.org) that plays moves using the lichess opening explorer with the Masters' database. Once we're out of book moves, the bot will try to match the opponent's rating so that you always get a fair game, using Stockfish.
+A simple chess bot for [lichess.org](https://lichess.org) that plays moves using the lichess opening explorer with the Masters' database. Once we're out of book moves, the bot will try to match the opponent's rating so that you always get a fair game, using Stockfish. The idea is to have a bot that plays into the same lines every time to practise playing specific openings. 
+
+While using the Masters' database, moves are chosen uniformly randomly from the top 5. This allows for some non-determinism in terms of where each game goes, so even within the same lines, slightly different moves will be chosen. This is of course barring the fact that the bot will play into the exact starting position, if for example it requires 3 moves to get there, e.g., the Vienna requires e4 e5 Nc3. The first 10 moves or 20 ply are played using the opening explorer. 
+
+I found that using the complete Lichess database made for a poor choice for this bot since among the top 5 moves in many opening positions, blunders appear quite frequently (almost too frequently!)
 
 ## Setup
 
@@ -33,17 +37,19 @@ You will be prompted to choose preferred openings and the bot will start listeni
 If you prefer a small web UI instead of the command line prompts run:
 
 ```bash
-python -m chess_trainer.frontend
+python -m chess_trainer.ui
 ```
 
-Your browser will open `http://localhost:8000/` where you can pick your preferred openings and enter the username you wish to challenge. When you submit the form, the challenge URL from Lichess opens in a new tab so you can accept it. The game page is then opened automatically once Lichess starts the game.
+Your browser will open `http://localhost:8000/` where you can pick your preferred openings and enter the username you wish to challenge. If you have no preference, you can leave the form blank (except for the Lichess ID). When you submit the form, the challenge URL from Lichess opens in a new tab so you can accept it. The game page is then opened automatically once Lichess starts the game.
 
 ## Files
 
 - `chess_trainer/trainer.py` – main entry point that handles events and engine interaction.
 - `chess_trainer/bot_profile.py` – dataclass describing the bot's settings and default openings.
 - `chess_trainer/openings_explorer.py` – helper module that queries the opening explorer and filters moves by your preferences.
-- `chess_trainer/frontend.py` – simple Flask server for configuring and challenging the bot.
+- `chess_trainer/ui.py` – simple Flask server for configuring and challenging the bot.
 - `setup.sh` – installs Stockfish 16 and the required Python packages.
 
-Enjoy your training games!
+Please leave me feedback or suggestions for future improvements, I would really appreciate it :)
+
+Enjoy your training games! 

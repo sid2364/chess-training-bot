@@ -4,7 +4,7 @@ import threading
 import webbrowser
 from typing import List, Optional
 
-from flask import Flask, request
+from flask import Flask, request, render_template
 import requests
 import html
 
@@ -16,30 +16,6 @@ from .bot_profile import BotProfile, white_openings, black_openings
 
 app = Flask(__name__)
 PROFILE = BotProfile()
-
-HTML_TEMPLATE = """<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='utf-8'>
-    <title>Chess Trainer Setup</title>
-</head>
-<body>
-    <h1>Chess Trainer Bot Setup</h1>
-    <form method='post' action='/start'>
-        <h2>White openings</h2>
-        {white_options}
-        <h2>Black openings</h2>
-        {black_options}
-        <label>Challenge rating offset:
-            <input type='number' name='challenge' value='0'>
-        </label><br>
-        <label>Your Lichess username:
-            <input type='text' name='username'>
-        </label><br>
-        <button type='submit'>Start Game</button>
-    </form>
-</body>
-</html>"""
 
 def build_options(name_list: List[str], field: str) -> str:
     out = []
@@ -73,8 +49,7 @@ def create_challenge(username: str) -> Optional[str]:
 def index() -> str:
     white = build_options(white_openings, "white")
     black = build_options(black_openings, "black")
-    return HTML_TEMPLATE.format(white_options=white, black_options=black)
-
+    return render_template("index.html", white_options=white, black_options=black)
 
 @app.post("/start")
 def start() -> str:
