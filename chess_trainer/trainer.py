@@ -32,7 +32,7 @@ STOCKFISH_PATH = "/usr/games/stockfish"
 # TODO check if the binary actually exists in this path, if not, do "which stockfish" and use that path instead
 
 OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
-TIME_PER_MOVE = 5
+TIME_PER_MOVE = 2
 # CHALLENGE = 100 # how much to increase bot ELO compared to player's
 
 if berserk is not None and API_TOKEN:
@@ -64,7 +64,11 @@ def handle_events(bot_profile: BotProfile = BotProfile(), on_game_start=None):
             play_game(game_id, bot_profile)
 
 def make_move_on_board(board, game_id, chosen_move_uci):
-    client.bots.make_move(game_id, chosen_move_uci)
+    try:
+        client.bots.make_move(game_id, chosen_move_uci)
+    except ResponseError as e:
+        print(f"Could not make a move: {e}")
+        return
     board.push_uci(chosen_move_uci)
 
 def play_game(game_id, bot_profile: BotProfile):
