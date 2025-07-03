@@ -17,6 +17,7 @@ black_openings = [
     "e4 c5 - Sicilian Defense",
     "e4 d5 - Scandinavian Defense",
     "e4 e6 - French Defense",
+    "e4 d6 - Pirc Defense"
     "e4 c6 - Caro-Kann Defense",
     "d4 Nf6 - Indian Defense",
     "d4 g6 - Queen's Pawn Game: Modern Defense",

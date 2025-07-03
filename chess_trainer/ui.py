@@ -74,11 +74,10 @@ def start() -> str:
     thread.start()
     return "Challenge created. Please accept it in the opened tab."
 
-
 def run_server() -> None:
     """Start the frontend server and launch the default browser."""
+    threading.Timer(1, lambda: webbrowser.open("http://localhost:8000/")).start() # so we don't see a "connection refused before Flask starts serving
 
-    webbrowser.open("http://localhost:8000/")
     app.run(host="localhost", port=8000)
 
 

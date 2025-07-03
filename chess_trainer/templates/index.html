@@ -15,6 +15,7 @@
       --border: #333;
       --radius: 6px;
       --gap: 1.5rem;
+      --small-gap: 0.5rem; /* for tighter option spacing */
       --pad: 2rem;
       --font: 1rem;
       --maxw: 1100px;
@@ -44,36 +45,42 @@
       text-align: center;
       margin-bottom: var(--gap);
     }
-    .sections {
-      display: flex;
+
+    /* 2-column grid *only* for the two openings sections */
+    .openings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: var(--gap);
-      flex-wrap: nowrap;
+      margin-bottom: var(--gap);
     }
     .section {
-      flex: 1 1 45%;
-      min-width: 300px;
+      background: var(--bg);
+      padding: var(--pad);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
     }
-    h2 {
+    .section h2 {
+      margin-top: 0;
       font-size: 1.25rem;
-      margin-bottom: 0.75rem;
-      color: var(--fg);
+      margin-bottom: 1rem;
     }
+
+    /* tighter spacing between each checkbox/option */
     .options-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--gap);
+      gap: var(--small-gap);
     }
+
+    /* Elo & username side by side */
     .field-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: var(--gap);
-      margin-top: var(--gap);
-      flex-wrap: nowrap;
     }
     label {
       font-size: var(--font);
-      flex: 1 1 200px;
-      display: flex;
-      flex-direction: column;
+      display: block;
     }
     input[type='text'],
     input[type='number'] {
@@ -89,6 +96,7 @@
     input::placeholder {
       color: #888;
     }
+
     button {
       width: 100%;
       padding: 1rem;
@@ -110,7 +118,7 @@
   <div class="container">
     <h1>Chess Training Bot Setup</h1>
     <form action="/start" method="post">
-      <div class="sections">
+      <div class="openings-grid">
         <div class="section">
           <h2>White openings</h2>
           <div class="options-grid">
@@ -124,15 +132,23 @@
           </div>
         </div>
       </div>
-        <hr>
+
       <div class="field-row">
-        <label for="challenge">Challenge rating offset
-          <input id="challenge" type="number" name="challenge" value="0">
-        </label>
-        <label for="username">Your Lichess username
-          <input id="username" type="text" name="username" value="WolfpackTwentyThree" placeholder="e.g. sid123">
-        </label>
+        <div class="section">
+          <h2>Challenge rating offset</h2>
+          <label for="challenge">
+            <input id="challenge" type="number" name="challenge" value="0">
+          </label>
+        </div>
+        <div class="section">
+          <h2>Your Lichess username</h2>
+          <label for="username">
+            <input id="username" type="text" name="username"
+                   value="WolfpackTwentyThree" placeholder="for e.g., DrNykterstein">
+          </label>
+        </div>
       </div>
+
       <button type="submit">Start Game</button>
     </form>
   </div>
