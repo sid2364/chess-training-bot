@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import os
 
+from berserk.exceptions import ResponseError
+
 try:  # optional dependency for .env support
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - optional dependency
@@ -46,7 +48,10 @@ def handle_events(bot_profile: BotProfile = BotProfile(), on_game_start=None):
     for event in client.bots.stream_incoming_events():
         t = event["type"]
         if t == "challenge":
-            client.bots.accept_challenge(event["challenge"]["id"])
+            try:
+                client.bots.accept_challenge(event["challenge"]["id"])
+            except ResponseError:
+                print("Could not accept challenge! Moving on...")
             print("Accepted challenge!")
         elif t == "gameStart":
             game_id = event["game"]["id"]

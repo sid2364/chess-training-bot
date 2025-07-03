@@ -83,33 +83,43 @@ def filter_by_preferences(moves, prefs):
     # no named openings so just return everything sinc we can't filter
     return moves
 
-def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5): # top_n is the number of moves to choose from
+def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
     ply = len(board.move_stack)
     if ply >= max_ply:
         return None
 
     play = ",".join(m.uci() for m in board.move_stack) if ply else None
-
-    # response = explorer.get_lichess_games(play=play, moves=top_n)
     response = fetch_book_moves(play, top_n)
 
-    # figure out which preference list to use
-    white_prefs, black_prefs = bot_profile.get_clean_openings()
-    # print(white_prefs, black_prefs)
+    # figure out prefs
     if chess is None:
-        prefs = white_prefs
+        prefs = bot_profile.get_clean_openings()[0]
     else:
+        white_prefs, black_prefs = bot_profile.get_clean_openings()
         prefs = white_prefs if bot_profile.our_color == chess.WHITE else black_prefs
 
-    filtered = filter_by_preferences(response, prefs)
-    unfiltered = filter_by_preferences(response, None)
+    # unfiltered UCIs for debug
+    unfiltered_moves = [m['uci'] for m in response]
 
-    candidates = [entry['uci'] for entry in filtered]
-    all_candidates = [entry['uci'] for entry in unfiltered]
-
-    if not candidates:
+    # apply your prefs filter
+    filtered_moves = filter_by_preferences(response, prefs)
+    if not filtered_moves:
         return None
 
-    choice = random.choice(candidates)
-    print(f"Candidate moves before filtering: {all_candidates},\n after filtering: {candidates},\n chose: {choice}")
-    return choice
+    # compute weights on filtered only
+    weights = [
+        m['white'] + m['draws'] + m['black']
+        for m in filtered_moves
+    ]
+    filtered_uci = [m['uci'] for m in filtered_moves]
+
+    # weighted random pick
+    chosen = random.choices(population=filtered_uci, weights=weights, k=1)[0]
+
+    print("*" * 20)
+    print(f"Unfiltered: {unfiltered_moves}")
+    print(f"After filter: {filtered_uci}")
+    print(f"Weights: {weights}")
+    print(f"Chosen move: {chosen}")
+
+    return chosen
