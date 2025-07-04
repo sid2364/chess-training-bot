@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import os
+import sys
+import shutil
 
 from berserk.exceptions import ResponseError
 
@@ -25,13 +27,35 @@ from .bot_profile import BotProfile
 load_dotenv()  # read token from environment if available
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
 
-"""Main bot training loop and event handling."""
+def find_stockfish_binary() -> str:
+    # Override via .env
+    env_path = os.getenv("STOCKFISH_PATH")
+    if env_path:
+        if os.path.isfile(env_path) and os.access(env_path, os.X_OK):
+            return env_path
+        else:
+            print(f"STOCKFISH_PATH is set to {env_path} but it's not an executable file", file=sys.stderr)
+
+    # Check built‑in default for stockfish on Ubuntu
+    default_path = "/usr/games/stockfish"
+    if os.path.isfile(default_path) and os.access(default_path, os.X_OK):
+        return default_path
+
+    # Fallback to PATH, if all else fails
+    which_path = shutil.which("stockfish")
+    if which_path:
+        return which_path
+
+    # Nothing found, so crash
+    raise FileNotFoundError(
+        "Could not locate the Stockfish binary! Please install Stockfish or set the STOCKFISH_PATH in .env to the executable!"
+    )
 
 from . import openings_explorer
-STOCKFISH_PATH = "/usr/games/stockfish"
-# TODO check if the binary actually exists in this path, if not, do "which stockfish" and use that path instead
+STOCKFISH_PATH = find_stockfish_binary() # "/usr/games/stockfish"
 
-OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
+# OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
+OUR_NAME = os.getenv("LICHESS_BOT_NAME")
 TIME_PER_MOVE = 2
 # CHALLENGE = 100 # how much to increase bot ELO compared to player's
 
@@ -40,7 +64,6 @@ if berserk is not None and API_TOKEN:
     client = berserk.Client(session=session)
 else:  # pragma: no cover - allows running tests without optional deps
     session = client = None
-
 
 ############################################### Core Bot Logic ####################################
 
@@ -90,11 +113,14 @@ def play_game(game_id, bot_profile: BotProfile):
     print(f"BOT will play at ELO: {bot_profile.opp_rating}")
 
     bot_profile.opp_rating = max(1320, bot_profile.opp_rating)
+    bot_profile.opp_rating = min(3190, bot_profile.opp_rating)
 
     # Configure Stockfish to match opponent’s strength
     engine.configure({
         "UCI_LimitStrength": True,
-        "UCI_Elo": bot_profile.opp_rating
+        "UCI_Elo": bot_profile.opp_rating,
+        #"Ponder": True, # think while opponent is thinking, apparently automatically managed!
+        "Threads": 4
     })
 
     init_moves_str = start.get("state", {}).get("moves", "")
@@ -157,8 +183,6 @@ def play_game(game_id, bot_profile: BotProfile):
     engine.quit()
 
 def main() -> None:
-    """Entry point for running the training bot via ``python -m``."""
-
     profile = BotProfile()
 
     try:
