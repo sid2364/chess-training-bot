@@ -2,6 +2,8 @@
 import os
 import sys
 import shutil
+import threading
+from typing import Optional
 import webbrowser
 
 from berserk.exceptions import ResponseError
@@ -68,8 +70,14 @@ else:  # pragma: no cover - allows running tests without optional deps
 
 ############################################### Core Bot Logic ####################################
 
-def handle_events(bot_profile: BotProfile = BotProfile(), on_game_start=None):
+def handle_events(
+    bot_profile: BotProfile = BotProfile(),
+    on_game_start=None,
+    stop_event: Optional[threading.Event] = None,
+):
     for event in client.bots.stream_incoming_events():
+        if stop_event is not None and stop_event.is_set():
+            break
         t = event["type"]
         if t == "challenge":
             try:

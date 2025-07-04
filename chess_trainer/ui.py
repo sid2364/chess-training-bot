@@ -16,6 +16,8 @@ from .bot_profile import BotProfile, white_openings, black_openings
 
 app = Flask(__name__)
 PROFILE = BotProfile()
+EVENT_THREAD: Optional[threading.Thread] = None
+STOP_EVENT: Optional[threading.Event] = None
 
 def build_options(name_list: List[str], field: str) -> str:
     out = []
@@ -45,34 +47,47 @@ def create_challenge(username: str) -> Optional[str]:
     return json_data.get("url", {})
 
 
-@app.get("/")
+@app.route("/", methods=["GET", "POST"])
 def index() -> str:
+    message: Optional[str] = None
+    if request.method == "POST":
+        global EVENT_THREAD, STOP_EVENT
+        PROFILE.chosen_white = request.form.getlist("white")
+        PROFILE.chosen_black = request.form.getlist("black")
+        PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
+        username = request.form.get("username", "")
+
+        print(PROFILE)
+        url = create_challenge(username)
+        if not url:
+            message = "Failed to create challenge"
+        else:
+            webbrowser.open(url)
+
+            if EVENT_THREAD is not None and EVENT_THREAD.is_alive():
+                if STOP_EVENT is not None:
+                    STOP_EVENT.set()
+                EVENT_THREAD.join(timeout=0.1)
+
+            STOP_EVENT = threading.Event()
+
+            def on_game_start(game_id: str) -> None:
+                # webbrowser.open(f"https://lichess.org/{game_id}")
+                pass # we already open the challenge above when we get the url back, so no need to open twice
+
+            EVENT_THREAD = threading.Thread(
+                target=handle_events,
+                args=(PROFILE, on_game_start, STOP_EVENT),
+                daemon=True,
+            )
+            EVENT_THREAD.start()
+            message = "Challenge created. Please accept it in the opened tab."
+
     white = build_options(white_openings, "white")
     black = build_options(black_openings, "black")
-    return render_template("index.html", white_options=white, black_options=black)
-
-@app.post("/start")
-def start() -> str:
-    PROFILE.chosen_white = request.form.getlist("white")
-    PROFILE.chosen_black = request.form.getlist("black")
-    PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
-    username = request.form.get("username", "")
-
-    print(PROFILE)
-    url = create_challenge(username)
-    if not url:
-        return "Failed to create challenge"
-
-    webbrowser.open(url)
-
-    def on_game_start(game_id: str) -> None:
-        webbrowser.open(f"https://lichess.org/{game_id}")
-
-    thread = threading.Thread(
-        target=handle_events, args=(PROFILE, on_game_start), daemon=True
+    return render_template(
+        "index.html", white_options=white, black_options=black, message=message
     )
-    thread.start()
-    return "Challenge created. Please accept it in the opened tab."
 
 def run_server() -> None:
     """Start the frontend server and launch the default browser."""

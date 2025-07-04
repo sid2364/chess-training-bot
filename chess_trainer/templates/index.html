@@ -112,12 +112,21 @@
     button:hover {
       background: var(--accent-hover);
     }
+    .message {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: var(--gap);
+      color: var(--accent);
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Chess Training Bot Setup</h1>
-    <form action="/start" method="post">
+    {% if message %}
+    <p class="message">{{ message }}</p>
+    {% endif %}
+    <form action="/" method="post">
       <div class="openings-grid">
         <div class="section">
           <h2>White openings</h2>
