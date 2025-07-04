@@ -75,6 +75,7 @@ def handle_events(
     on_game_start=None,
     stop_event: Optional[threading.Event] = None,
 ):
+    print("Listening for events now...")
     for event in client.bots.stream_incoming_events():
         if stop_event is not None and stop_event.is_set():
             break
@@ -93,7 +94,10 @@ def handle_events(
                 except Exception:
                     pass
             print(f"Game started: {game_id}")
-            play_game(game_id, bot_profile)
+            try:
+                play_game(game_id, bot_profile)
+            except Exception as e:
+                print("Game discontinued, moving on to the next one...")
 
 def make_move_on_board(board, game_id, chosen_move_uci):
     try:

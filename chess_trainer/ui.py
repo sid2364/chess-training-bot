@@ -11,6 +11,7 @@ import html
 from .trainer import (
     API_TOKEN,
     handle_events,
+    OUR_NAME
 )
 from .bot_profile import BotProfile, white_openings, black_openings
 
@@ -81,13 +82,52 @@ def index() -> str:
                 daemon=True,
             )
             EVENT_THREAD.start()
-            message = "Challenge created. Please accept it in the opened tab."
+            message = "Challenge sent!"
 
     white = build_options(white_openings, "white")
     black = build_options(black_openings, "black")
     return render_template(
         "index.html", white_options=white, black_options=black, message=message
     )
+
+@app.route("/profile", methods=["POST"])
+def profile() -> str:
+    """Save settings and open the bot profile page in the user's browser."""
+    global EVENT_THREAD, STOP_EVENT
+
+    PROFILE.chosen_white = request.form.getlist("white")
+    PROFILE.chosen_black = request.form.getlist("black")
+    PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
+
+    url = f"https://lichess.org/@/{OUR_NAME}"
+    try:
+        webbrowser.open(url, new=2)
+    except Exception:
+        pass
+
+    if EVENT_THREAD is not None and EVENT_THREAD.is_alive():
+        if STOP_EVENT is not None:
+            STOP_EVENT.set()
+        EVENT_THREAD.join(timeout=0.1)
+
+    STOP_EVENT = threading.Event()
+
+    EVENT_THREAD = threading.Thread(
+        target=handle_events,
+        args=(PROFILE, None, STOP_EVENT),
+        daemon=True,
+    )
+    EVENT_THREAD.start()
+
+    white = build_options(white_openings, "white")
+    black = build_options(black_openings, "black")
+    return render_template(
+        "index.html",
+        white_options=white,
+        black_options=black,
+        message="Bot profile saved, ready for challenges!",
+    )
+
 
 def run_server() -> None:
     """Start the frontend server and launch the default browser."""
