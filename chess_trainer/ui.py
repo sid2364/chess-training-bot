@@ -72,7 +72,8 @@ def index() -> str:
             STOP_EVENT = threading.Event()
 
             def on_game_start(game_id: str) -> None:
-                webbrowser.open(f"https://lichess.org/{game_id}")
+                # webbrowser.open(f"https://lichess.org/{game_id}")
+                pass # we already open the challenge above when we get the url back, so no need to open twice
 
             EVENT_THREAD = threading.Thread(
                 target=handle_events,
