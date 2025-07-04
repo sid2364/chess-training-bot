@@ -20,13 +20,15 @@ PROFILE = BotProfile()
 EVENT_THREAD: Optional[threading.Thread] = None
 STOP_EVENT: Optional[threading.Event] = None
 
-def build_options(name_list: List[str], field: str) -> str:
+def build_options(name_list: List[str], field: str, selected: Optional[List[str]] = None) -> str:
     out = []
+    selected_set = set(selected or [])
     for opening in name_list:
         value = html.escape(opening, quote=True)
         label = html.escape(opening)
+        checked = " checked" if opening in selected_set else ""
         out.append(
-            f"<label><input type='checkbox' name='{field}' value='{value}'> {label}</label><br>"
+            f"<label><input type='checkbox' name='{field}' value='{value}'{checked}> {label}</label><br>"
         )
     return "\n".join(out)
 
@@ -84,10 +86,14 @@ def index() -> str:
             EVENT_THREAD.start()
             message = "Challenge sent!"
 
-    white = build_options(white_openings, "white")
-    black = build_options(black_openings, "black")
+    white = build_options(white_openings, "white", PROFILE.chosen_white)
+    black = build_options(black_openings, "black", PROFILE.chosen_black)
     return render_template(
-        "index.html", white_options=white, black_options=black, message=message
+        "index.html",
+        white_options=white,
+        black_options=black,
+        message=message,
+        challenge=PROFILE.challenge,
     )
 
 @app.route("/profile", methods=["POST"])
@@ -119,15 +125,15 @@ def profile() -> str:
     )
     EVENT_THREAD.start()
 
-    white = build_options(white_openings, "white")
-    black = build_options(black_openings, "black")
+    white = build_options(white_openings, "white", PROFILE.chosen_white)
+    black = build_options(black_openings, "black", PROFILE.chosen_black)
     return render_template(
         "index.html",
         white_options=white,
         black_options=black,
         message="Bot profile saved, ready for challenges!",
+        challenge=PROFILE.challenge,
     )
-
 
 def run_server() -> None:
     """Start the frontend server and launch the default browser."""

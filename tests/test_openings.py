@@ -1,3 +1,9 @@
+import os
+import sys
+
+# to ensure the package can be imported when tests are run directly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import chess_trainer.openings_explorer as oe
 
 sample_moves = [
