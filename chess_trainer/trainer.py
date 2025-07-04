@@ -2,6 +2,7 @@
 import os
 import sys
 import shutil
+import webbrowser
 
 from berserk.exceptions import ResponseError
 
@@ -197,6 +198,14 @@ def main() -> None:
             ", ".join(white), ", ".join(black)
         )
     )
+
+    # open the browser at https://lichess.org/@/chess-trainer-bot
+    chess_bot_profile_url = f"https://lichess.org/@/{OUR_NAME}"
+    try:
+        webbrowser.open(chess_bot_profile_url, new=2)
+        print(f"Opening browser at {chess_bot_profile_url}")
+    except Exception as e:
+        print(f"Couldn't open browser: {e}")
 
     try:
         handle_events(bot_profile=profile)
