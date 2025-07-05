@@ -10,6 +10,8 @@ white_openings = [
     "d4 d5 Bf4 - Queen's Pawn Game: Accelerated London System",
     "e4 e5 Nc3 - Vienna Game",
     "e4 e5 f4 - King's Gambit",
+    "e4 e5 Nf3 Nc6 Bb5 - Ruy Lopez",
+    "e4 e5 Nf3 Nc6 Bc4 - Italian Game",
 ]
 
 black_openings = [
@@ -21,6 +23,8 @@ black_openings = [
     "e4 c6 - Caro-Kann Defense",
     "d4 Nf6 - Indian Defense",
     "d4 g6 - Queen's Pawn Game: Modern Defense",
+    "d4 d5 c4 e6 - Queen's Gambit Declined",
+    "d4 d5 c4 dxc4 - Queen's Gambit Accepted"
 ]
 
 @dataclass
