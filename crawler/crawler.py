@@ -9,12 +9,12 @@ from typing import Dict, Tuple, Optional
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 logger = logging.getLogger(__name__)
-SLEEP_TIME = 10
+SLEEP_TIME = 30
 
 EXPLORER_URL = "https://explorer.lichess.ovh/masters"
 
 DEPTH = 5
-TOP_N = 5
+TOP_N = 8
 MIN_GAMES = 100
 OUTPUT_PATH = "opening_book.json"
 
