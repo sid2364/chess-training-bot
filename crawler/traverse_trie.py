@@ -1,5 +1,5 @@
 import json
-import argparse
+from crawler import OUTPUT_PATH # "opening_book.json"
 
 
 def traverse(node: dict, move_sequence: list[str], depth: int) -> None:
@@ -23,7 +23,4 @@ def main(json_path: str) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='print opening-book trie in human-readable form just fo debugging')
-    parser.add_argument('json', help='Path to opening_book.json')
-    args = parser.parse_args()
-    main(args.json)
+    main(OUTPUT_PATH)

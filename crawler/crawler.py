@@ -13,10 +13,14 @@ SLEEP_TIME = 10
 
 EXPLORER_URL = "https://explorer.lichess.ovh/masters"
 
+DEPTH = 5
+TOP_N = 5
+MIN_GAMES = 100
+OUTPUT_PATH = "opening_book.json"
+
+
 class Node:
-    """
-    A node in the opening-book trie. Used to create the database JSON
-    """
+    # A node in the opening-book trie. Used to create the database JSON
     def __init__(self):
         self.children: Dict[str, 'Node'] = {}
         self.stats: Optional[Tuple[int, int, int]] = None
@@ -45,11 +49,8 @@ class Node:
 
 
 def fetch_book_moves(play: Optional[str], top_n: int) -> list:
-    """
-    Query the Lichess Explorer url for top continuations using the 'play' parameter
-
-    Retries once after 60s on HTTP 429.
-    """
+    # Query the Lichess Explorer url for top continuations using the 'play' parameter
+    # Also retries once after 60s on HTTP 429.
     params = {}
     if play:
         params['play'] = play
@@ -67,11 +68,8 @@ def fetch_book_moves(play: Optional[str], top_n: int) -> list:
 
 def crawl(node: Node, board: chess.Board, ply: int, max_ply: int, top_n: int,
           min_games: int, cache: Dict[str, list]) -> None:
-    """
-    Recursively build the opening trie up to max_ply using 'play'.
-    Prune branches with total games < min_games.
-    Uses cache to avoid duplicate queries by 'play'.
-    """
+    # Recursively build the opening trie up to max_ply using 'play', prune branches with total games < min_games
+    # Uses cache to avoid duplicate queries by 'play'
     if ply >= max_ply:
         return
 
@@ -123,30 +121,19 @@ def load_trie(input_path: str) -> Node:
         data = json.load(f)
     return Node.from_dict(data)
 
-
 def main():
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Build a 5-ply Lichess opening book trie using play')
-    parser.add_argument('--depth', type=int, default=5, help='Maximum ply depth')
-    parser.add_argument('--top', type=int, default=5, help='Top-N moves per position')
-    parser.add_argument('--min-games', type=int, default=100, help='Prune branches with fewer games')
-    parser.add_argument('--output', type=str, default='opening_book.json', help='Output JSON file')
-    parser.add_argument('--resume', type=str, help='Path to existing JSON trie to resume from')
-    args = parser.parse_args()
-
-    if args.resume:
-        root = load_trie(args.resume)
-        logger.info(f'Resuming from {args.resume}')
-    else:
-        root = Node()
+    # Always start fresh
+    root = Node()
 
     board = chess.Board()
     cache: Dict[tuple, list] = {}
-    crawl(root, board, ply=0, max_ply=args.depth, top_n=args.top, min_games=args.min_games, cache=cache)
+    crawl(root, board, ply=0,
+          max_ply=DEPTH,
+          top_n=TOP_N,
+          min_games=MIN_GAMES,
+          cache=cache)
 
-    save_trie(root, args.output)
-
+    save_trie(root, OUTPUT_PATH)
 
 if __name__ == '__main__':
     main()
