@@ -54,7 +54,7 @@ def find_stockfish_binary() -> str:
         "Could not locate the Stockfish binary! Please install Stockfish or set the STOCKFISH_PATH in .env to the executable!"
     )
 
-from . import openings_explorer
+from . import lichess_openings_explorer
 STOCKFISH_PATH = find_stockfish_binary() # "/usr/games/stockfish"
 
 # OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess

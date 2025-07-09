@@ -16,7 +16,7 @@ EXPLORER_URL = "https://explorer.lichess.ovh/masters"
 DEPTH = 5
 TOP_N = 8
 MIN_GAMES = 100
-OUTPUT_PATH = "opening_book.json"
+OPENING_BOOK_FILE = "opening_book.json"
 
 
 class Node:
@@ -133,7 +133,7 @@ def main():
           min_games=MIN_GAMES,
           cache=cache)
 
-    save_trie(root, OUTPUT_PATH)
+    save_trie(root, OPENING_BOOK_FILE)
 
 if __name__ == '__main__':
     main()
