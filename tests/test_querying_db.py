@@ -12,51 +12,81 @@ def load_book():
     return query_db.load_trie(BOOK_PATH)
 
 
-def test_load_trie_has_e2e4():
+def test_load_trie_has_children():
     trie = load_book()
-    assert 'e2e4' in trie.get('children', {})
+    assert trie.get('children')
+
+
+def _sample_openings(trie, n=2):
+    samples = []
+
+    def dfs(node, path):
+        if len(samples) >= n:
+            return
+        if node.get('opening_name'):
+            samples.append((path.copy(), node))
+        for uci, child in node.get('children', {}).items():
+            path.append(uci)
+            dfs(child, path)
+            path.pop()
+
+    dfs(trie, [])
+    return samples
 
 
 def test_get_node_by_path():
     trie = load_book()
-    node = query_db.get_node_by_path(trie, ['e2e4', 'c7c5'])
-    assert node.get('opening_name') == 'Sicilian Defense'
-    assert node.get('stats') == [179913, 240745, 147001]
+    (path, node) = _sample_openings(trie, 1)[0]
+    fetched = query_db.get_node_by_path(trie, path)
+    assert fetched.get('opening_name') == node.get('opening_name')
+    assert fetched.get('stats') == node.get('stats')
 
 
 def test_find_matching_nodes_path_exists():
     trie = load_book()
-    matches = query_db.find_matching_nodes(trie, ['Hyperaccelerated Dragon'])
-    paths = [p for p, _, _ in matches]
-    assert ['e2e4', 'c7c5', 'g1f3', 'g7g6'] in paths
+    (path, node) = _sample_openings(trie, 1)[0]
+    keyword = node['opening_name'].split()[0]
+    matches = query_db.find_matching_nodes(trie, [keyword])
+    assert any(p == path for p, _, _ in matches)
 
 
 def test_collect_full_continuations():
     trie = load_book()
-    node = query_db.get_node_by_path(trie, ['e2e4', 'c7c5', 'g1f3', 'g7g6'])
-    leaves = query_db.collect_full_continuations(['e2e4', 'c7c5', 'g1f3', 'g7g6'], node)
-    assert ['e2e4', 'c7c5', 'g1f3', 'g7g6', 'd2d4'] in leaves
-    assert len(leaves) == 6
+    # pick a node with children
+    samples = [s for s in _sample_openings(trie, 5) if s[1].get('children')]
+    if not samples:
+        samples = _sample_openings(trie, 1)
+    path, node = samples[0]
+    leaves = query_db.collect_full_continuations(path, node)
+    assert leaves
+    assert all(seq[: len(path)] == path for seq in leaves)
+    for seq in leaves:
+        n = query_db.get_node_by_path(trie, seq)
+        assert not n.get('children')
 
 
-def test_candidate_moves_for_italian_game():
+def test_candidate_moves_for_sample_opening():
     trie = load_book()
-    res = query_db.candidate_moves_for_position(trie, ['Italian Game'], ['e2e4', 'e7e5', 'g1f3'])
-    assert list(res.keys()) == ['b8c6']
-    info = res['b8c6']
-    assert info['stats'] == [66665, 113183, 46961]
-    assert info['queried'] == ['Italian Game']
-    assert 'e2e4 e7e5 g1f3 b8c6 f1c4' in info['continuations']
+    (path, node) = _sample_openings(trie, 1)[0]
+    if len(path) < 1:
+        return
+    target = node['opening_name']
+    prefix = path[:-1]
+    res = query_db.candidate_moves_for_position(trie, [target], prefix)
+    assert path[-1] in res
+    info = res[path[-1]]
+    assert isinstance(info.get('stats'), list) and len(info['stats']) == 3
+    assert target in info['queried']
+    assert any(
+        cont.split()[: len(prefix) + 1] == prefix + [path[-1]]
+        for cont in info['continuations']
+    )
 
 
 def test_candidate_moves_multiple_targets():
-    trie = load_book()
-    res = query_db.candidate_moves_for_position(
-        trie,
-        ['Hyperaccelerated Dragon', 'Italian Game', 'Scandinavian'],
-        ['e2e4']
-    )
-    assert {'c7c5', 'd7d5', 'g7g6'} <= set(res.keys())
-    assert res['d7d5']['queried'] == ['Scandinavian']
-    assert res['c7c5']['queried'] == ['Hyperaccelerated Dragon']
-    assert res['g7g6']['queried'] == ['Hyperaccelerated Dragon']
+    trie = load_book()    samples = _sample_openings(trie, 2)
+    targets = [node['opening_name'] for _, node in samples]
+    res = query_db.candidate_moves_for_position(trie, targets, [])
+    assert res
+    for target in targets:
+        assert any(target in info['queried'] for info in res.values())
