@@ -1,5 +1,15 @@
 import json
-from .crawler import OPENING_BOOK_FILE  # "opening_book.json"
+import sys
+import os
+
+# ``traverse_trie`` can be run as a script, so use an absolute import to load
+# constants from ``crawler`` regardless of how this module is executed.  When
+# executed directly the parent directory is added to ``sys.path`` so the package
+# can be resolved.
+if __package__ is None or __package__ == "":
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from openings_book.crawler import OPENING_BOOK_FILE  # "opening_book.json"
 
 
 def traverse(node: dict, move_sequence: list[str], depth: int) -> None:

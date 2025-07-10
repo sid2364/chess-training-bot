@@ -6,6 +6,13 @@ import threading
 from typing import Optional
 import webbrowser
 
+# When executed directly (e.g. ``python chess_trainer/trainer.py``) the project
+# root isn't on ``sys.path`` which prevents absolute imports from working.
+# Detect that scenario and add the parent directory so that importing the
+# ``chess_trainer`` package succeeds.
+if __package__ is None or __package__ == "":
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from berserk.exceptions import ResponseError
 
 try:  # optional dependency for .env support
@@ -25,7 +32,10 @@ try:  # optional chess engine library
 except Exception:  # pragma: no cover - optional dependency
     chess = None
 
-from .bot_profile import BotProfile
+# Support running both as part of the package and as a script by using an
+# absolute import.  This avoids ``ImportError: attempted relative import with
+# no known parent package`` when executing ``trainer.py`` directly.
+from chess_trainer.bot_profile import BotProfile
 
 load_dotenv()  # read token from environment if available
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
@@ -57,7 +67,10 @@ def find_stockfish_binary() -> str:
         "Could not locate the Stockfish binary! Please install Stockfish or set the STOCKFISH_PATH in .env to the executable!"
     )
 
-from . import lichess_openings_explorer
+# ``lichess_openings_explorer`` lives in the same package.  Use an absolute
+# import so ``trainer.py`` works whether it is executed with ``-m`` or as a
+# script.
+from chess_trainer import lichess_openings_explorer
 STOCKFISH_PATH = find_stockfish_binary() # "/usr/games/stockfish"
 
 # OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
