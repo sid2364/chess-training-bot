@@ -70,13 +70,13 @@ def fetch_book_moves(play, top_n):
 def get_local_book_moves(board, top_n):
     """Return moves from the local opening book for the given position."""
     if _LOCAL_BOOK is None or local_db is None:
-        print("local book is none")
+        # print("local_db or _LOCAL_BOOK is None")
         return []
 
     node = local_db.get_node_by_path(_LOCAL_BOOK, [m.uci() for m in board.move_stack])
     children = node.get("children") or {}
     moves = []
-    print("CHILDREN", children)
+    # print(f"CHILDREN {children}")
     for uci, child in children.items():
         stats = child.get("stats") or [0, 0, 0]
         entry = {
