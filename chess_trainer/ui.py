@@ -3,17 +3,27 @@ from __future__ import annotations
 import threading
 import webbrowser
 from typing import List, Optional
+import sys
+import os
+
+# When executed directly (``python chess_trainer/ui.py``) we need the project
+# root on ``sys.path`` so absolute imports work.
+if __package__ is None or __package__ == "":
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, request, render_template
 import requests
 import html
 
-from trainer import (
+# When this module is run directly ``__package__`` will be ``None`` and relative
+# imports will fail.  Using absolute imports keeps things working in that
+# scenario as well as when the package is imported.
+from chess_trainer.trainer import (
     API_TOKEN,
     handle_events,
     OUR_NAME
 )
-from bot_profile import BotProfile, white_openings, black_openings
+from chess_trainer.bot_profile import BotProfile, white_openings, black_openings
 
 app = Flask(__name__)
 PROFILE = BotProfile()

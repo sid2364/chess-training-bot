@@ -1,5 +1,12 @@
 import random
 import os
+import sys
+
+# When run directly (e.g. ``python chess_trainer/lichess_openings_explorer.py``)
+# we need to add the repository root to ``sys.path`` so that imports of the
+# ``chess_trainer`` package succeed.
+if __package__ is None or __package__ == "":
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 try:  # optional dependency for reading .env
     from dotenv import load_dotenv
 except Exception:  # pragma: no cover - optional dependency
@@ -28,7 +35,9 @@ except Exception:  # pragma: no cover - optional dependency
 
 """Utilities for fetching and filtering opening moves from Lichess."""
 
-from bot_profile import BotProfile
+# Use an absolute import so this module works when executed directly or as part
+# of the ``chess_trainer`` package.
+from chess_trainer.bot_profile import BotProfile
 
 load_dotenv()  # read .env for API token if present
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
