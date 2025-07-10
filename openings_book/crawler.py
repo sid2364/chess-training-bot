@@ -9,9 +9,9 @@ from typing import Dict, Tuple, Optional
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-SLEEP_TIME = 30
+SLEEP_TIME = 45
 EXPLORER_URL = "https://explorer.lichess.ovh/masters"
-DEPTH = 6
+DEPTH = 8
 TOP_N = 8
 MIN_GAMES = 100
 OPENING_BOOK_FILE = "opening_book.json"

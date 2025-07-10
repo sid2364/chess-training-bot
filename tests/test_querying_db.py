@@ -84,7 +84,8 @@ def test_candidate_moves_for_sample_opening():
 
 
 def test_candidate_moves_multiple_targets():
-    trie = load_book()    samples = _sample_openings(trie, 2)
+    trie = load_book()
+    samples = _sample_openings(trie, 2)
     targets = [node['opening_name'] for _, node in samples]
     res = query_db.candidate_moves_for_position(trie, targets, [])
     assert res
