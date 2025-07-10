@@ -90,7 +90,7 @@ class BotProfile:
         white_player = start["white"]
         black_player = start["black"]
 
-        from .trainer import OUR_NAME  # local import to avoid circular import
+        from trainer import OUR_NAME  # local import to avoid circular import
         import chess
 
         if white_player["id"] == OUR_NAME:

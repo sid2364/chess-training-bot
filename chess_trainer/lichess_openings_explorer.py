@@ -19,13 +19,29 @@ try:  # berserk is optional during testing
 except Exception:  # pragma: no cover - optional dependency
     berserk = None
 
+# local opening book utilities (may not be present??)
+try:
+    from openings_book import query_db as local_db
+except Exception:  # pragma: no cover - optional dependency
+    local_db = None
+
+
 """Utilities for fetching and filtering opening moves from Lichess."""
 
-from .bot_profile import BotProfile
+from bot_profile import BotProfile
 
 load_dotenv()  # read .env for API token if present
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
 lichess_explorer_url = "https://explorer.lichess.ovh/masters"
+
+LOCAL_BOOK_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "opening_book.json")
+if local_db is not None and os.path.exists(LOCAL_BOOK_PATH):
+    try:
+        _LOCAL_BOOK = local_db.load_trie(LOCAL_BOOK_PATH)
+    except Exception:  # pragma: no cover - optional dependency
+        _LOCAL_BOOK = None
+else:  # pragma: no cover - optional dependency
+    _LOCAL_BOOK = None
 
 if berserk is not None and API_TOKEN:
     session = berserk.TokenSession(API_TOKEN)
@@ -41,6 +57,36 @@ def fetch_book_moves(play, top_n):
     params = {"play": play, "moves": top_n}
     resp = requests.get(lichess_explorer_url, params=params)
     return resp.json().get("moves", [])
+
+def get_local_book_moves(board, top_n):
+    """Return moves from the local opening book for the given position."""
+    if _LOCAL_BOOK is None or local_db is None:
+        print("local book is none")
+        return []
+
+    node = local_db.get_node_by_path(_LOCAL_BOOK, [m.uci() for m in board.move_stack])
+    children = node.get("children") or {}
+    moves = []
+    print("CHILDREN", children)
+    for uci, child in children.items():
+        stats = child.get("stats") or [0, 0, 0]
+        entry = {
+            "uci": uci,
+            "white": stats[0],
+            "draws": stats[1],
+            "black": stats[2],
+        }
+        name = child.get("opening_name")
+        if name:
+            entry["opening"] = {"name": name}
+        moves.append(entry)
+
+    if top_n is not None and len(moves) > top_n:
+        moves.sort(key=lambda m: m["white"] + m["draws"] + m["black"], reverse=True)
+        moves = moves[:top_n]
+
+    return moves
+
 
 
 def filter_by_preferences(moves, prefs):
@@ -90,6 +136,14 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
 
     play = ",".join(m.uci() for m in board.move_stack) if ply else None
     response = fetch_book_moves(play, top_n)
+
+    # first try local database
+    response = get_local_book_moves(board, top_n)
+    if not response:
+        print("Using Lichess API to fetch the best book moves")
+        response = fetch_book_moves(play, top_n)
+    else:
+        print("Found book moves in local DB")
 
     # figure out prefs
     if chess is None:

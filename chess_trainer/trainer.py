@@ -25,10 +25,13 @@ try:  # optional chess engine library
 except Exception:  # pragma: no cover - optional dependency
     chess = None
 
-from .bot_profile import BotProfile
+from bot_profile import BotProfile
 
 load_dotenv()  # read token from environment if available
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
+
+import traceback
+
 
 def find_stockfish_binary() -> str:
     # Override via .env
@@ -54,7 +57,7 @@ def find_stockfish_binary() -> str:
         "Could not locate the Stockfish binary! Please install Stockfish or set the STOCKFISH_PATH in .env to the executable!"
     )
 
-from . import lichess_openings_explorer
+import lichess_openings_explorer
 STOCKFISH_PATH = find_stockfish_binary() # "/usr/games/stockfish"
 
 # OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
@@ -97,7 +100,8 @@ def handle_events(
             try:
                 play_game(game_id, bot_profile)
             except Exception as e:
-                print("Game discontinued, moving on to the next one...")
+                traceback.print_exc()
+                print(f"Game discontinued, moving on to the next one...{e}")
 
 def make_move_on_board(board, game_id, chosen_move_uci):
     try:
@@ -152,7 +156,7 @@ def play_game(game_id, bot_profile: BotProfile):
 
     if board.turn == bot_profile.our_color:
         print("It's the BOT's turn!")
-        chosen_move_uci = openings_explorer.get_book_move(board, bot_profile)
+        chosen_move_uci = lichess_openings_explorer.get_book_move(board, bot_profile)
         if chosen_move_uci is None:
             engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
             chosen_move_uci = engine_move.move.uci()
@@ -180,7 +184,7 @@ def play_game(game_id, bot_profile: BotProfile):
 
         # Only play when it's our turn
         if board.turn == bot_profile.our_color:
-            chosen_move_uci = openings_explorer.get_book_move(board, bot_profile)
+            chosen_move_uci = lichess_openings_explorer.get_book_move(board, bot_profile)
             if chosen_move_uci is None:
                 engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
                 if engine_move.move is None: # The game is over!
