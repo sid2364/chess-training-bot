@@ -8,12 +8,12 @@ from flask import Flask, request, render_template
 import requests
 import html
 
-from trainer import (
+from .trainer import (
     API_TOKEN,
     handle_events,
     OUR_NAME
 )
-from bot_profile import BotProfile, white_openings, black_openings
+from .bot_profile import BotProfile, white_openings, black_openings
 
 app = Flask(__name__)
 PROFILE = BotProfile()

@@ -25,7 +25,7 @@ try:  # optional chess engine library
 except Exception:  # pragma: no cover - optional dependency
     chess = None
 
-from bot_profile import BotProfile
+from .bot_profile import BotProfile
 
 load_dotenv()  # read token from environment if available
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
@@ -57,7 +57,7 @@ def find_stockfish_binary() -> str:
         "Could not locate the Stockfish binary! Please install Stockfish or set the STOCKFISH_PATH in .env to the executable!"
     )
 
-import lichess_openings_explorer
+from . import lichess_openings_explorer
 STOCKFISH_PATH = find_stockfish_binary() # "/usr/games/stockfish"
 
 # OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess

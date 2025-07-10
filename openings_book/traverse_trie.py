@@ -1,5 +1,5 @@
 import json
-from crawler import OPENING_BOOK_FILE # "opening_book.json"
+from .crawler import OPENING_BOOK_FILE  # "opening_book.json"
 
 
 def traverse(node: dict, move_sequence: list[str], depth: int) -> None:
