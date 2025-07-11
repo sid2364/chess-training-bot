@@ -3,88 +3,198 @@ import os
 import sys
 import shutil
 import threading
+import time
+import traceback
 from typing import Optional
-import webbrowser
 
-# When executed directly (e.g. ``python chess_trainer/trainer.py``) the project
-# root isn't on ``sys.path`` which prevents absolute imports from working.
-# Detect that scenario and add the parent directory so that importing the
-# ``chess_trainer`` package succeeds.
+# ---- new imports for retry logic ----
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from tenacity import retry, stop_after_attempt, wait_random_exponential
+
+import webbrowser
+from berserk.exceptions import ResponseError
+
+# When executed directly, add project root so absolute imports work
 if __package__ is None or __package__ == "":
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from berserk.exceptions import ResponseError
-
-try:  # optional dependency for .env support
+# optional .env support
+try:
     from dotenv import load_dotenv
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:
     def load_dotenv() -> None:
         pass
 
-try:  # optional network dependency
+try:
     import berserk
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:
     berserk = None
 
-try:  # optional chess engine library
+try:
     import chess
     import chess.engine
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:
     chess = None
 
-# Support running both as part of the package and as a script by using an
-# absolute import.  This avoids ``ImportError: attempted relative import with
-# no known parent package`` when executing ``trainer.py`` directly.
 from chess_trainer.bot_profile import BotProfile
-
-load_dotenv()  # read token from environment if available
-API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
-
-import traceback
-
-
-def find_stockfish_binary() -> str:
-    # Override via .env
-    env_path = os.getenv("STOCKFISH_PATH")
-    if env_path:
-        if os.path.isfile(env_path) and os.access(env_path, os.X_OK):
-            return env_path
-        else:
-            print(f"STOCKFISH_PATH is set to {env_path} but it's not an executable file", file=sys.stderr)
-
-    # Check built‑in default for stockfish on Ubuntu
-    default_path = "/usr/games/stockfish"
-    if os.path.isfile(default_path) and os.access(default_path, os.X_OK):
-        return default_path
-
-    # Fallback to PATH, if all else fails
-    which_path = shutil.which("stockfish")
-    if which_path:
-        return which_path
-
-    # Nothing found, so crash
-    raise FileNotFoundError(
-        "Could not locate the Stockfish binary! Please install Stockfish or set the STOCKFISH_PATH in .env to the executable!"
-    )
-
-# ``lichess_openings_explorer`` lives in the same package.  Use an absolute
-# import so ``trainer.py`` works whether it is executed with ``-m`` or as a
-# script.
 from chess_trainer import lichess_openings_explorer
-STOCKFISH_PATH = find_stockfish_binary() # "/usr/games/stockfish"
 
-# OUR_NAME = "chess-trainer-bot" # to identify our name on Lichess
+load_dotenv()
+API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
 OUR_NAME = os.getenv("LICHESS_BOT_NAME")
 TIME_PER_MOVE = 2
-# CHALLENGE = 100 # how much to increase bot ELO compared to player's
 
+def find_stockfish_binary() -> str:
+    env_path = os.getenv("STOCKFISH_PATH")
+    if env_path and os.path.isfile(env_path) and os.access(env_path, os.X_OK):
+        return env_path
+    default = "/usr/games/stockfish"
+    if os.path.isfile(default) and os.access(default, os.X_OK):
+        return default
+    which = shutil.which("stockfish")
+    if which:
+        return which
+    raise FileNotFoundError(
+        "Could not locate the Stockfish binary! Please install it or set STOCKFISH_PATH."
+    )
+
+STOCKFISH_PATH = find_stockfish_binary()
+
+# ---- set up berserk with a retrying session ----
 if berserk is not None and API_TOKEN:
-    session = berserk.TokenSession(API_TOKEN)
+    # create a requests.Session with retries
+    base_session = requests.Session()
+    retry_strategy = Retry(
+        total=5,
+        backoff_factor=0.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS", "POST"],
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    base_session.mount("http://", adapter)
+    base_session.mount("https://", adapter)
+
+    # TokenSession wraps base_session internally; we monkey‑patch it:
+    token_sess = berserk.TokenSession(API_TOKEN)
+    token_sess.session = base_session
+
+    session = token_sess
     client = berserk.Client(session=session)
-else:  # pragma: no cover - allows running tests without optional deps
+else:
     session = client = None
 
-############################################### Core Bot Logic ####################################
+###############################################
+#   Robust streaming helpers with backoff
+###############################################
+
+def robust_stream_incoming_events():
+    backoff = 5
+    while True:
+        try:
+            for event in client.bots.stream_incoming_events():
+                yield event
+            backoff = 5
+        except Exception as e:
+            print(f"[stream_incoming_events] error: {e}; reconnecting in {backoff}s")
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 60)
+
+def robust_stream_game_state(game_id):
+    backoff = 5
+    while True:
+        try:
+            for ev in client.bots.stream_game_state(game_id):
+                yield ev
+            backoff = 5
+        except Exception as e:
+            print(f"[stream_game_state] error: {e}; reconnecting in {backoff}s")
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 60)
+
+###############################################
+#   Decorated move sender with retry
+###############################################
+
+@retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10))
+def make_move_on_board(board, game_id, chosen_move_uci):
+    try:
+        client.bots.make_move(game_id, chosen_move_uci)
+    except ResponseError as e:
+        print(f"Could not make move {chosen_move_uci}: {e}; retrying...")
+        raise
+    board.push_uci(chosen_move_uci)
+
+###############################################
+#   Core Bot Logic
+###############################################
+
+def play_game(game_id, bot_profile: BotProfile):
+    print("in play_game, bot_profile=", bot_profile)
+    engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+    stream = robust_stream_game_state(game_id)
+
+    # handle initial state
+    start = next(stream)
+    bot_profile.determine_color_and_opp_rating(start)
+    print(f"Playing as {'White' if bot_profile.our_color else 'Black'} vs {bot_profile.opp_rating}")
+    bot_profile.opp_rating = max(1320, min(3190, bot_profile.opp_rating + bot_profile.challenge))
+    engine.configure({
+        "UCI_LimitStrength": True,
+        "UCI_Elo": bot_profile.opp_rating,
+        "Threads": 4
+    })
+
+    # rebuild board
+    init_moves = start.get("state", {}).get("moves", "").split()
+    board = chess.Board()
+    for idx, uci in enumerate(init_moves, start=1):
+        board.push_uci(uci)
+
+    # if it's our turn
+    if board.turn == bot_profile.our_color:
+        chosen = lichess_openings_explorer.get_book_move(board, bot_profile)
+        if not chosen:
+            move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE)).move.uci()
+            make_move_on_board(board, game_id, move)
+            print(f"-> (engine) {move}")
+        else:
+            make_move_on_board(board, game_id, chosen)
+            print(f"-> (book) {chosen}")
+    else:
+        print("Waiting for opponent...")
+
+    # main loop
+    for ev in stream:
+        # only care about game-state updates
+        if ev.get("type") != "gameState":
+            continue
+
+        # if the game is no longer 'started', stop here
+        status = ev.get("status")
+        if status != "started":
+            winner = ev.get("winner") or "none"
+            print(f"Game ended: status={status}, winner={winner}")
+            break
+
+        # rebuild the board from the moves string
+        board.reset()
+        for uci in ev["moves"].split():
+            board.push_uci(uci)
+
+        # if it’s our turn, pick and send a move
+        if board.turn == bot_profile.our_color:
+            chosen = lichess_openings_explorer.get_book_move(board, bot_profile)
+            if not chosen:
+                engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
+                # engine_move.move should always be valid here
+                chosen = engine_move.move.uci()
+            make_move_on_board(board, game_id, chosen)
+            print(f"-> {chosen}")
+
+    engine.quit()
 
 def handle_events(
     bot_profile: BotProfile = BotProfile(),
@@ -92,147 +202,43 @@ def handle_events(
     stop_event: Optional[threading.Event] = None,
 ):
     print("Listening for events now...")
-    for event in client.bots.stream_incoming_events():
-        if stop_event is not None and stop_event.is_set():
+    for event in robust_stream_incoming_events():
+        if stop_event and stop_event.is_set():
             break
         t = event["type"]
         if t == "challenge":
             try:
                 client.bots.accept_challenge(event["challenge"]["id"])
             except ResponseError:
-                print("Could not accept challenge! Moving on...")
-            print("Accepted challenge!")
+                print("Could not accept challenge; skipping.")
+            else:
+                print("Accepted challenge!")
         elif t == "gameStart":
             game_id = event["game"]["id"]
-            if on_game_start is not None:
+            print(f"Game started: {game_id}")
+            if on_game_start:
                 try:
                     on_game_start(game_id)
                 except Exception:
                     pass
-            print(f"Game started: {game_id}")
             try:
                 play_game(game_id, bot_profile)
             except Exception as e:
                 traceback.print_exc()
-                print(f"Game discontinued, moving on to the next one...{e}")
-
-def make_move_on_board(board, game_id, chosen_move_uci):
-    try:
-        client.bots.make_move(game_id, chosen_move_uci)
-    except ResponseError as e:
-        print(f"Could not make a move: {e}")
-        return
-    board.push_uci(chosen_move_uci)
-
-def play_game(game_id, bot_profile: BotProfile):
-    """
-    Main game loop to play
-    """
-    print("in play_game, bot_profile=", bot_profile)
-    # Launch engine
-    engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
-    stream = client.bots.stream_game_state(game_id)
-
-    # First message contains players’ ratings
-    start = next(stream)
-    bot_profile.determine_color_and_opp_rating(start)
-    # print("our_color, opp_rating", bot_profile.our_color, bot_profile.opp_rating)
-
-    print(f"Playing as {'White' if bot_profile.our_color else 'Black'} vs {bot_profile.opp_rating}-rated opponent")
-    bot_profile.opp_rating += bot_profile.challenge
-    print(f"BOT will play at ELO: {bot_profile.opp_rating}")
-
-    bot_profile.opp_rating = max(1320, bot_profile.opp_rating)
-    bot_profile.opp_rating = min(3190, bot_profile.opp_rating)
-
-    # Configure Stockfish to match opponent’s strength
-    engine.configure({
-        "UCI_LimitStrength": True,
-        "UCI_Elo": bot_profile.opp_rating,
-        #"Ponder": True, # think while opponent is thinking, apparently automatically managed!
-        "Threads": 4
-    })
-
-    init_moves_str = start.get("state", {}).get("moves", "")
-    init_moves = init_moves_str.split()
-    board = chess.Board()
-
-    print(init_moves)
-    if init_moves:
-        print("Moves played so far:")
-        for idx, uci in enumerate(init_moves, start=1):
-            color = "White" if (idx % 2) == 1 else "Black"
-            print(f"  {idx}. {color}: {uci}")
-            board.push_uci(uci)
-    else:
-        print("No moves played yet; starting from the initial position.")
-
-    if board.turn == bot_profile.our_color:
-        print("It's the BOT's turn!")
-        chosen_move_uci = lichess_openings_explorer.get_book_move(board, bot_profile)
-        if chosen_move_uci is None:
-            engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
-            chosen_move_uci = engine_move.move.uci()
-            make_move_on_board(board, game_id, chosen_move_uci)
-            print(f"-> (first move from engine) {chosen_move_uci}")
-        else:
-            make_move_on_board(board, game_id, chosen_move_uci)
-            print(f"-> (first move from openings database) {chosen_move_uci}")
-
-    else:
-        print("It's the player's turn!")
-
-    # Main loop: respond whenever it’s our turn
-    for ev in stream:
-        # print("ev", ev)
-        if ev.get("type") != "gameState":
-            continue
-
-        # print("board.turn", board.turn)
-
-        # Rebuild position
-        board.reset()
-        for uci in ev["moves"].split():
-            board.push_uci(uci)
-
-        # Only play when it's our turn
-        if board.turn == bot_profile.our_color:
-            chosen_move_uci = lichess_openings_explorer.get_book_move(board, bot_profile)
-            if chosen_move_uci is None:
-                engine_move = engine.play(board, limit=chess.engine.Limit(time=TIME_PER_MOVE))
-                if engine_move.move is None: # The game is over!
-                    print("You won!")
-                    break
-                chosen_move_uci = engine_move.move.uci()
-                make_move_on_board(board, game_id, chosen_move_uci)
-                print(f"-> (from engine) {chosen_move_uci}")
-            else:
-                make_move_on_board(board, game_id, chosen_move_uci)
-                print(f"-> (from openings database) {chosen_move_uci}")
-
-    engine.quit()
+                print(f"Game discontinued, moving on: {e}")
 
 def main() -> None:
     profile = BotProfile()
-
     try:
         profile.get_openings_choice_from_user()
     except KeyboardInterrupt:
-        print("Exiting")
-        return
+        print("Exiting"); return
 
     white, black = profile.get_clean_openings()
-    print(
-        "The bot will play:-\n as White -> {}\n as Black -> {}".format(
-            ", ".join(white), ", ".join(black)
-        )
-    )
+    print(f"As White -> {', '.join(white)}; as Black -> {', '.join(black)}")
 
-    # open the browser at https://lichess.org/@/chess-trainer-bot
-    chess_bot_profile_url = f"https://lichess.org/@/{OUR_NAME}"
     try:
-        webbrowser.open(chess_bot_profile_url, new=2)
-        print(f"Opening browser at {chess_bot_profile_url}")
+        webbrowser.open(f"https://lichess.org/@/{OUR_NAME}", new=2)
     except Exception as e:
         print(f"Couldn't open browser: {e}")
 
@@ -240,7 +246,6 @@ def main() -> None:
         handle_events(bot_profile=profile)
     except KeyboardInterrupt:
         print("Exiting")
-
 
 if __name__ == "__main__":
     main()
