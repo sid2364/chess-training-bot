@@ -2,6 +2,8 @@ import random
 import os
 import sys
 
+from opening_book.query_db import get_opening_for_moves
+
 # When run directly (e.g. ``python chess_trainer/lichess_openings_explorer.py``)
 # we need to add the repository root to ``sys.path`` so that imports of the
 # ``chess_trainer`` package succeed.
@@ -28,7 +30,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 # local opening book utilities (may not be present??)
 try:
-    from openings_book import query_db as local_db
+    from opening_book import query_db as local_db
 except Exception:  # pragma: no cover - optional dependency
     local_db = None
 
@@ -95,7 +97,6 @@ def get_local_book_moves(board, top_n):
         moves = moves[:top_n]
 
     return moves
-
 
 
 def filter_by_preferences(moves, prefs):
@@ -170,6 +171,8 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
         return None
 
     # compute weights on filtered only
+    # TODO maybe use white vs. black stats to choose the better move instead
+    #  of looking at how frequently a move is played
     weights = [
         m['white'] + m['draws'] + m['black']
         for m in filtered_moves
@@ -183,6 +186,11 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
     print(f"Unfiltered: {unfiltered_moves}")
     print(f"After filter: {filtered_uci}")
     print(f"Weights: {weights}")
+
+    if play is not None:
+        opening_name = local_db.get_opening_for_moves(_LOCAL_BOOK, play.split(','))
+        if opening_name is not None:
+            print(f"Current variation: {opening_name}")
     print(f"Chosen move: {chosen}")
 
     return chosen

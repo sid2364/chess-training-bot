@@ -1,6 +1,7 @@
 import json
 import re
-from typing import List, Tuple, Dict, Any, Set
+from typing import List, Tuple, Dict, Any, Set, Optional
+
 
 def load_trie(path: str) -> dict:
     with open(path, 'r', encoding='utf-8') as f:
@@ -109,18 +110,42 @@ def candidate_moves_for_position(
 
     return resp
 
+def get_opening_for_moves(trie: dict, moves: list[str]) -> Optional[str]:
+    """
+    Follow `moves` down the trie via get_node_by_path.
+    If *any* move isn’t in the book, return None.
+    Otherwise return the deepest non-null opening_name seen.
+    """
+    last_name: Optional[str] = None
+    for i in range(1, len(moves) + 1):
+        prefix = moves[:i]
+        node = get_node_by_path(trie, prefix)  # must exist, since full path did
+        if node.get("opening_name"):
+            last_name = node["opening_name"]
+
+    return last_name
+
 if __name__ == "__main__":
-    book = load_trie("opening_book.json")
-    cands = candidate_moves_for_position(
-        trie=book,
-        targets=["Hyperaccelerated Dragon", "Italian Game", "Scandinavian"],
-        current_seq=["e2e4", "d7d5"]
-    )
-    # print(cands)
-    for move, info in cands.items():
-        print(f"--> {move}")
-        print(f"\tstats:\t\t{info['stats']}")
-        print(f"\tqueried:\t\t{info['queried']}")
-        print("\toccurs in:")
-        for line in info['continuations']:
-            print("\t\t\t", line)
+    # Testing to see all the variations of "Hyperaccelerated Dragon", "Italian Game", "Scandinavian" when current move is "e2e4"
+    # book = load_trie("opening_book.json")
+    # cands = candidate_moves_for_position(
+    #     trie=book,
+    #     targets=["Hyperaccelerated Dragon", "Italian Game", "Scandinavian"],
+    #     current_seq=["e2e4"]
+    # )
+    # # print(cands)
+    # for move, info in cands.items():
+    #     print(f"--> {move}")
+    #     print(f"\tstats:\t\t{info['stats']}")
+    #     print(f"\tqueried:\t\t{info['queried']}")
+    #     print("\toccurs in:")
+    #     for line in info['continuations']:
+    #         print("\t\t\t", line)
+    #
+
+    # Query the local DB to see what opening we are currently in
+    with open("opening_book.json", encoding="utf-8") as f:
+        trie = json.load(f)
+
+    moves = "e2e4 g7g6 g1f3 c7c5 d2d4 f8g7 c2c4".split()
+    print(get_opening_for_moves(trie, moves))

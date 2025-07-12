@@ -39,7 +39,7 @@ except ImportError:
     chess = None
 
 from chess_trainer.bot_profile import BotProfile
-from openings_book import lichess_openings_explorer
+from opening_book import lichess_openings_explorer
 
 load_dotenv()
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")

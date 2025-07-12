@@ -9,7 +9,7 @@ import os
 if __package__ is None or __package__ == "":
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from openings_book.crawler import OPENING_BOOK_FILE  # "opening_book.json"
+from opening_book.crawler import OPENING_BOOK_FILE  # "opening_book.json"
 
 
 def traverse(node: dict, move_sequence: list[str], depth: int) -> None:

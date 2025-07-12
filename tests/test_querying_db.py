@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from openings_book import query_db
+from opening_book import query_db
 
 BOOK_PATH = os.path.join(os.path.dirname(__file__), "..", "opening_book.json") # kinda depends on there being a .json already?
 
