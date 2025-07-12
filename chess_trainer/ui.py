@@ -147,7 +147,7 @@ def profile() -> str:
 
 def run_server() -> None:
     """Start the frontend server and launch the default browser."""
-    threading.Timer(1, lambda: webbrowser.open("http://localhost:8000/")).start() # so we don't see a "connection refused before Flask starts serving
+    threading.Timer(1, lambda: webbrowser.open("http://localhost:8000/")).start() # timer of 1 so we don't see a "connection refused" before Flask starts serving
 
     app.run(host="localhost", port=8000)
 

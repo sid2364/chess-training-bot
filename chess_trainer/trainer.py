@@ -39,7 +39,7 @@ except ImportError:
     chess = None
 
 from chess_trainer.bot_profile import BotProfile
-from chess_trainer import lichess_openings_explorer
+from openings_book import lichess_openings_explorer
 
 load_dotenv()
 API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
@@ -132,13 +132,13 @@ def make_move_on_board(board, game_id, chosen_move_uci):
 ###############################################
 
 def play_game(game_id, bot_profile: BotProfile):
-    print("in play_game, bot_profile=", bot_profile)
+    # print("in play_game, bot_profile=", bot_profile)
     engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
     stream = robust_stream_game_state(game_id)
 
     # handle initial state
     start = next(stream)
-    bot_profile.determine_color_and_opp_rating(start)
+    bot_profile.determine_color_and_opp_rating(start) # TODO could be run implicitly before play_game?
     print(f"Playing as {'White' if bot_profile.our_color else 'Black'} vs {bot_profile.opp_rating}")
     bot_profile.opp_rating = max(1320, min(3190, bot_profile.opp_rating + bot_profile.challenge))
     engine.configure({
@@ -209,8 +209,8 @@ def handle_events(
         if t == "challenge":
             try:
                 client.bots.accept_challenge(event["challenge"]["id"])
-            except ResponseError:
-                print("Could not accept challenge; skipping.")
+            except ResponseError as e:
+                print(f"Could not accept challenge; skipping - {e}")
             else:
                 print("Accepted challenge!")
         elif t == "gameStart":

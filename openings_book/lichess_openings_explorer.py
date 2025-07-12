@@ -144,8 +144,8 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
         return None
 
     play = ",".join(m.uci() for m in board.move_stack) if ply else None
-    response = fetch_book_moves(play, top_n)
 
+    # response = fetch_book_moves(play, top_n)
     # first try local database
     response = get_local_book_moves(board, top_n)
     if not response:
