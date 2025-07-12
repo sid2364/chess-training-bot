@@ -46,12 +46,17 @@
       margin-bottom: var(--gap);
     }
 
-    /* 2-column grid *only* for the two openings sections */
-    .openings-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: var(--gap);
-      margin-bottom: var(--gap);
+    /* container for the dynamic openings tree */
+    .openings-tree {
+      list-style: none;
+      padding-left: 1rem;
+    }
+    .openings-tree button {
+      margin-right: 0.5rem;
+      background: none;
+      border: none;
+      color: var(--fg);
+      cursor: pointer;
     }
     .section {
       background: var(--bg);
@@ -127,19 +132,13 @@
     <p class="message">{{ message }}</p>
     {% endif %}
     <form action="/" method="post">
-      <div class="openings-grid">
-        <div class="section">
-          <h2>White openings</h2>
-          <div class="options-grid">
-            {{ white_options|safe }}
-          </div>
-        </div>
-        <div class="section">
-          <h2>Black openings</h2>
-          <div class="options-grid">
-            {{ black_options|safe }}
-          </div>
-        </div>
+      <div class="section">
+        <h2>Opening repertoire</h2>
+        <input type="text" id="search" placeholder="Search openings...">
+        <ul id="tree" class="openings-tree"></ul>
+        <ul id="search-results" class="openings-tree"></ul>
+        <input type="hidden" id="white_hidden" name="white" value="{{ selected_white }}">
+        <input type="hidden" id="black_hidden" name="black" value="{{ selected_black }}">
       </div>
 
       <div class="field-row">
@@ -158,9 +157,126 @@
         </div>
       </div>
 
-      <button type="submit">Start random side challenge</button>
-      <button type="submit" formaction="/profile" formmethod="post">Save and go to Lichess BOT</button>
-    </form>
+  <button type="submit">Start random side challenge</button>
+  <button type="submit" formaction="/profile" formmethod="post">Save and go to Lichess BOT</button>
+  </form>
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const tree = document.getElementById('tree');
+      const searchInput = document.getElementById('search');
+      const results = document.getElementById('search-results');
+      const whiteHidden = document.getElementById('white_hidden');
+      const blackHidden = document.getElementById('black_hidden');
+
+      const selectedWhite = new Set(whiteHidden.value ? whiteHidden.value.split(',') : []);
+      const selectedBlack = new Set(blackHidden.value ? blackHidden.value.split(',') : []);
+
+      function updateHidden() {
+        whiteHidden.value = Array.from(selectedWhite).join(',');
+        blackHidden.value = Array.from(selectedBlack).join(',');
+      }
+
+      function createItem(item, path) {
+        const li = document.createElement('li');
+        const label = document.createElement('span');
+        label.textContent = item.uci + (item.name ? ' - ' + item.name : '');
+        li.appendChild(label);
+
+        if (item.name) {
+          const color = ((path.split(' ').length + 1) % 2 === 1) ? 'white' : 'black';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.style.marginLeft = '0.5rem';
+          if (color === 'white' && selectedWhite.has(item.name)) cb.checked = true;
+          if (color === 'black' && selectedBlack.has(item.name)) cb.checked = true;
+          cb.addEventListener('change', () => {
+            if (color === 'white') {
+              cb.checked ? selectedWhite.add(item.name) : selectedWhite.delete(item.name);
+            } else {
+              cb.checked ? selectedBlack.add(item.name) : selectedBlack.delete(item.name);
+            }
+            updateHidden();
+          });
+          li.appendChild(cb);
+        }
+
+        if (item.hasChildren) {
+          const btn = document.createElement('button');
+          btn.textContent = '\u25B6';
+          btn.addEventListener('click', () => {
+            if (btn.dataset.loaded) {
+              const ul = li.querySelector('ul');
+              if (ul.style.display === 'none') {
+                ul.style.display = 'block';
+                btn.textContent = '\u25BC';
+              } else {
+                ul.style.display = 'none';
+                btn.textContent = '\u25B6';
+              }
+              return;
+            }
+            fetch('/openings?path=' + encodeURIComponent(path ? path + ' ' + item.uci : item.uci))
+              .then(r => r.json())
+              .then(data => {
+                const ul = document.createElement('ul');
+                ul.className = 'openings-tree';
+                data.children.forEach(ch => {
+                  ul.appendChild(createItem(ch, path ? path + ' ' + item.uci : item.uci));
+                });
+                li.appendChild(ul);
+                btn.dataset.loaded = '1';
+                btn.textContent = '\u25BC';
+              });
+          });
+          li.insertBefore(btn, label);
+        }
+        return li;
+      }
+
+      function loadRoot() {
+        fetch('/openings')
+          .then(r => r.json())
+          .then(data => {
+            data.children.forEach(item => {
+              tree.appendChild(createItem(item, ''));
+            });
+          });
+      }
+
+      function searchOpenings(q) {
+        results.innerHTML = '';
+        if (!q) return;
+        fetch('/openings?q=' + encodeURIComponent(q))
+          .then(r => r.json())
+          .then(data => {
+            data.results.forEach(res => {
+              const li = document.createElement('li');
+              li.textContent = res.path + ' - ' + res.name;
+              li.addEventListener('click', () => {
+                const color = (res.path.split(' ').length % 2 === 1) ? 'white' : 'black';
+                if (color === 'white') {
+                  selectedWhite.add(res.name);
+                } else {
+                  selectedBlack.add(res.name);
+                }
+                updateHidden();
+              });
+              results.appendChild(li);
+            });
+          });
+      }
+
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          searchOpenings(searchInput.value.trim());
+        }
+      });
+
+      loadRoot();
+      updateHidden();
+    });
+  </script>
 </body>
 </html>

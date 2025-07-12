@@ -11,9 +11,11 @@ import os
 if __package__ is None or __package__ == "":
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import requests
-import html
+import json
+
+from opening_book import query_db
 
 # When this module is run directly ``__package__`` will be ``None`` and relative
 # imports will fail.  Using absolute imports keeps things working in that
@@ -23,24 +25,15 @@ from chess_trainer.trainer import (
     handle_events,
     OUR_NAME
 )
-from chess_trainer.bot_profile import BotProfile, white_openings, black_openings
+from chess_trainer.bot_profile import BotProfile
 
 app = Flask(__name__)
 PROFILE = BotProfile()
 EVENT_THREAD: Optional[threading.Thread] = None
 STOP_EVENT: Optional[threading.Event] = None
 
-def build_options(name_list: List[str], field: str, selected: Optional[List[str]] = None) -> str:
-    out = []
-    selected_set = set(selected or [])
-    for opening in name_list:
-        value = html.escape(opening, quote=True)
-        label = html.escape(opening)
-        checked = " checked" if opening in selected_set else ""
-        out.append(
-            f"<label><input type='checkbox' name='{field}' value='{value}'{checked}> {label}</label><br>"
-        )
-    return "\n".join(out)
+BOOK_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "opening_book.json")
+BOOK = query_db.load_trie(BOOK_PATH)
 
 def create_challenge(username: str) -> Optional[str]:
     """Send a challenge to ``username`` using the Lichess API."""
@@ -65,8 +58,10 @@ def index() -> str:
     message: Optional[str] = None
     if request.method == "POST":
         global EVENT_THREAD, STOP_EVENT
-        PROFILE.chosen_white = request.form.getlist("white")
-        PROFILE.chosen_black = request.form.getlist("black")
+        white_raw = request.form.get("white", "")
+        black_raw = request.form.get("black", "")
+        PROFILE.chosen_white = [w for w in white_raw.split(",") if w]
+        PROFILE.chosen_black = [b for b in black_raw.split(",") if b]
         PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
         username = request.form.get("username", "")
 
@@ -96,12 +91,10 @@ def index() -> str:
             EVENT_THREAD.start()
             message = "Challenge sent!"
 
-    white = build_options(white_openings, "white", PROFILE.chosen_white)
-    black = build_options(black_openings, "black", PROFILE.chosen_black)
     return render_template(
         "index.html",
-        white_options=white,
-        black_options=black,
+        selected_white=",".join(PROFILE.chosen_white),
+        selected_black=",".join(PROFILE.chosen_black),
         message=message,
         challenge=PROFILE.challenge,
     )
@@ -111,8 +104,10 @@ def profile() -> str:
     """Save settings and open the bot profile page in the user's browser."""
     global EVENT_THREAD, STOP_EVENT
 
-    PROFILE.chosen_white = request.form.getlist("white")
-    PROFILE.chosen_black = request.form.getlist("black")
+    white_raw = request.form.get("white", "")
+    black_raw = request.form.get("black", "")
+    PROFILE.chosen_white = [w for w in white_raw.split(",") if w]
+    PROFILE.chosen_black = [b for b in black_raw.split(",") if b]
     PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
 
     url = f"https://lichess.org/@/{OUR_NAME}"
@@ -135,15 +130,41 @@ def profile() -> str:
     )
     EVENT_THREAD.start()
 
-    white = build_options(white_openings, "white", PROFILE.chosen_white)
-    black = build_options(black_openings, "black", PROFILE.chosen_black)
     return render_template(
         "index.html",
-        white_options=white,
-        black_options=black,
+        selected_white=",".join(PROFILE.chosen_white),
+        selected_black=",".join(PROFILE.chosen_black),
         message="Bot profile saved, ready for challenges!",
         challenge=PROFILE.challenge,
     )
+
+
+@app.route("/openings")
+def openings() -> str:
+    path_str = request.args.get("path", "").strip()
+    q = request.args.get("q", "").strip()
+    path = path_str.split() if path_str else []
+    node = query_db.get_node_by_path(BOOK, path)
+
+    if q:
+        matches = query_db.find_matching_nodes(node, [q])
+        results = []
+        for p, n, _ in matches:
+            name = n.get("opening_name")
+            if name:
+                full = path + p
+                results.append({"path": " ".join(full), "name": name})
+        return jsonify({"results": results})
+
+    children = []
+    for uci, child in (node.get("children") or {}).items():
+        children.append({
+            "uci": uci,
+            "name": child.get("opening_name"),
+            "eco": child.get("eco"),
+            "hasChildren": bool(child.get("children")),
+        })
+    return jsonify({"path": " ".join(path), "children": children})
 
 def run_server() -> None:
     """Start the frontend server and launch the default browser."""
