@@ -1,4 +1,5 @@
 import json
+import random
 import re
 from typing import List, Tuple, Dict, Any, Set, Optional
 
@@ -110,16 +111,35 @@ def candidate_moves_for_position(
 
     return resp
 
-def get_opening_for_moves(trie: dict, moves: list[str]) -> Optional[str]:
+def choose_book_move(trie_: dict, targets: List[str], current_seq: List[str]) -> Optional[str]:
+    # Return a weighted random book move leading toward the target openings
+    # rather than a set of candidate moves
+    candidates = candidate_moves_for_position(trie_, targets, current_seq)
+    if not candidates:
+        return None
+
+    moves = []
+    weights = []
+    for uci, info in candidates.items():
+        stats = info.get('stats') or [0, 0, 0]
+        moves.append(uci)
+        weights.append(sum(stats))
+
+    if not any(weights):
+        weights = [1] * len(moves)
+
+    return random.choices(moves, weights=weights, k=1)[0]
+
+def get_opening_for_moves(trie_: dict, moves_: list[str]) -> Optional[str]:
     """
-    Follow `moves` down the trie via get_node_by_path.
-    If *any* move isn’t in the book, return None.
-    Otherwise return the deepest non-null opening_name seen.
+    Follow moves down the trie via get_node_by_path.
+    If _any_ move isn’t in the book, return None.
+    Otherwise, return the deepest non-null opening_name seen since that's easiest
     """
     last_name: Optional[str] = None
-    for i in range(1, len(moves) + 1):
-        prefix = moves[:i]
-        node = get_node_by_path(trie, prefix)  # must exist, since full path did
+    for i in range(1, len(moves_) + 1):
+        prefix = moves_[:i]
+        node = get_node_by_path(trie_, prefix)  # must exist, since full path did
         if node.get("opening_name"):
             last_name = node["opening_name"]
 
@@ -127,25 +147,26 @@ def get_opening_for_moves(trie: dict, moves: list[str]) -> Optional[str]:
 
 if __name__ == "__main__":
     # Testing to see all the variations of "Hyperaccelerated Dragon", "Italian Game", "Scandinavian" when current move is "e2e4"
-    # book = load_trie("opening_book.json")
-    # cands = candidate_moves_for_position(
-    #     trie=book,
-    #     targets=["Hyperaccelerated Dragon", "Italian Game", "Scandinavian"],
-    #     current_seq=["e2e4"]
-    # )
-    # # print(cands)
-    # for move, info in cands.items():
-    #     print(f"--> {move}")
-    #     print(f"\tstats:\t\t{info['stats']}")
-    #     print(f"\tqueried:\t\t{info['queried']}")
-    #     print("\toccurs in:")
-    #     for line in info['continuations']:
-    #         print("\t\t\t", line)
-    #
+    book = load_trie("opening_book.json")
+    candidates = candidate_moves_for_position(
+        trie=book,
+        targets=["Sicilian Defense: Hyperaccelerated Pterodactyl"], # "Hyperaccelerated Dragon", "Italian Game", "Scandinavian",
+        current_seq=["e2e4", "c7c5"]
+    )
+    # print(candidates)
+    for move, info in candidates.items():
+        print(f"--> {move}")
+        print(f"\tstats:\t\t{info['stats']}")
+        print(f"\tqueried:\t\t{info['queried']}")
+        print("\toccurs in:")
+        for line in info['continuations']:
+            print("\t\t\t", line)
+
 
     # Query the local DB to see what opening we are currently in
     with open("opening_book.json", encoding="utf-8") as f:
         trie = json.load(f)
 
-    moves = "e2e4 g7g6 g1f3 c7c5 d2d4 f8g7 c2c4".split()
-    print(get_opening_for_moves(trie, moves))
+    play = "e2e4 g7g6 g1f3 c7c5 d2d4 f8g7 c2c4"
+    moves = play.split()
+    print(f"{play} -> {get_opening_for_moves(trie, moves)}")

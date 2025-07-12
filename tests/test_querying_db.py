@@ -82,7 +82,6 @@ def test_candidate_moves_for_sample_opening():
         for cont in info['continuations']
     )
 
-
 def test_candidate_moves_multiple_targets():
     trie = load_book()
     samples = _sample_openings(trie, 2)
@@ -91,3 +90,10 @@ def test_candidate_moves_multiple_targets():
     assert res
     for target in targets:
         assert any(target in info['queried'] for info in res.values())
+
+def test_choose_book_move_returns_candidate():
+    trie = load_book()
+    seq = "e2e4 c7c5 g1f3".split()
+    move = query_db.choose_book_move(trie, ["Hyperaccelerated"], seq)
+    cands = query_db.candidate_moves_for_position(trie, ["Hyperaccelerated"], seq)
+    assert move is None or move in cands

@@ -165,6 +165,23 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
     # unfiltered UCIs for debug
     unfiltered_moves = [m['uci'] for m in response]
 
+    # try direct lookup in local database for preferred variation
+    if local_db is not None and _LOCAL_BOOK is not None:
+        seq = [m.uci() for m in board.move_stack]
+        targeted = local_db.choose_book_move(_LOCAL_BOOK, prefs, seq)
+        if targeted is not None:
+            print("*" * 20)
+            print(f"Unfiltered: {unfiltered_moves}")
+            print("Using direct local DB lookup")
+            if play is not None:
+                opening_name = local_db.get_opening_for_moves(_LOCAL_BOOK, play.split(','))
+                if opening_name is not None:
+                    print(f"Current variation: {opening_name}")
+            print(f"Chosen move: {targeted}")
+            return targeted
+
+    # FIXME the below should technically not be needed anymore, but maybe can be pruned later
+
     # apply your prefs filter
     filtered_moves = filter_by_preferences(response, prefs)
     if not filtered_moves:
