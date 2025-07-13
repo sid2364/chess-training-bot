@@ -14,3 +14,12 @@ fi
 
 # Install Python dependencies
 pip install -r requirements.txt
+
+# Install Node dependencies and build the frontend
+if command -v npm >/dev/null 2>&1; then
+    npm install
+    npm run build
+else
+    echo "Error: npm is not installed or not found in PATH" >&2
+    exit 1
+fi
