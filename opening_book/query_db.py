@@ -114,21 +114,22 @@ def candidate_moves_for_position(
 def choose_book_move(trie_: dict, targets: List[str], current_seq: List[str]) -> Optional[str]:
     # Return a weighted random book move leading toward the target openings
     # rather than a set of candidate moves
-    candidates = candidate_moves_for_position(trie_, targets, current_seq)
-    if not candidates:
+    candidates_ = candidate_moves_for_position(trie_, targets, current_seq)
+    # print(f"Candidate moves for position: {candidates_}")
+    if not candidates_:
         return None
 
-    moves = []
+    moves_ = []
     weights = []
-    for uci, info in candidates.items():
-        stats = info.get('stats') or [0, 0, 0]
-        moves.append(uci)
+    for uci, info_ in candidates_.items():
+        stats = info_.get('stats') or [0, 0, 0]
+        moves_.append(uci)
         weights.append(sum(stats))
 
     if not any(weights):
-        weights = [1] * len(moves)
+        weights = [1] * len(moves_)
 
-    return random.choices(moves, weights=weights, k=1)[0]
+    return random.choices(moves_, weights=weights, k=1)[0]
 
 def get_opening_for_moves(trie_: dict, moves_: list[str]) -> Optional[str]:
     """

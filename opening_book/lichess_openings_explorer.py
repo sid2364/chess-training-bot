@@ -179,35 +179,36 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
                     print(f"Current variation: {opening_name}")
             print(f"Chosen move: {targeted}")
             return targeted
+    return None
 
     # FIXME the below should technically not be needed anymore, but maybe can be pruned later
 
     # apply your prefs filter
-    filtered_moves = filter_by_preferences(response, prefs)
-    if not filtered_moves:
-        return None
-
-    # compute weights on filtered only
-    # TODO maybe use white vs. black stats to choose the better move instead
-    #  of looking at how frequently a move is played
-    weights = [
-        m['white'] + m['draws'] + m['black']
-        for m in filtered_moves
-    ]
-    filtered_uci = [m['uci'] for m in filtered_moves]
-
-    # weighted random pick
-    chosen = random.choices(population=filtered_uci, weights=weights, k=1)[0]
-
-    print("*" * 20)
-    print(f"Unfiltered: {unfiltered_moves}")
-    print(f"After filter: {filtered_uci}")
-    print(f"Weights: {weights}")
-
-    if play is not None:
-        opening_name = local_db.get_opening_for_moves(_LOCAL_BOOK, play.split(','))
-        if opening_name is not None:
-            print(f"Current variation: {opening_name}")
-    print(f"Chosen move: {chosen}")
-
-    return chosen
+    # filtered_moves = filter_by_preferences(response, prefs)
+    # if not filtered_moves:
+    #     return None
+    #
+    # # compute weights on filtered only
+    # # TODO maybe use white vs. black stats to choose the better move instead
+    # #  of looking at how frequently a move is played
+    # weights = [
+    #     m['white'] + m['draws'] + m['black']
+    #     for m in filtered_moves
+    # ]
+    # filtered_uci = [m['uci'] for m in filtered_moves]
+    #
+    # # weighted random pick
+    # chosen = random.choices(population=filtered_uci, weights=weights, k=1)[0]
+    #
+    # print("*" * 20)
+    # print(f"Unfiltered: {unfiltered_moves}")
+    # print(f"After filter: {filtered_uci}")
+    # print(f"Weights: {weights}")
+    #
+    # if play is not None:
+    #     opening_name = local_db.get_opening_for_moves(_LOCAL_BOOK, play.split(','))
+    #     if opening_name is not None:
+    #         print(f"Current variation: {opening_name}")
+    # print(f"Chosen move: {chosen}")
+    #
+    # return chosen
