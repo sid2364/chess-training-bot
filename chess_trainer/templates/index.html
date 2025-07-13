@@ -127,20 +127,22 @@
     <p class="message">{{ message }}</p>
     {% endif %}
     <form action="/" method="post">
-      <div class="openings-grid">
-        <div class="section">
-          <h2>White openings</h2>
-          <div class="options-grid">
-            {{ white_options|safe }}
-          </div>
-        </div>
-        <div class="section">
-          <h2>Black openings</h2>
-          <div class="options-grid">
-            {{ black_options|safe }}
-          </div>
-        </div>
-      </div>
+<!--      <div class="openings-grid">-->
+<!--        <div class="section">-->
+<!--          <h2>White openings</h2>-->
+<!--          <div class="options-grid">-->
+<!--            {{ white_options|safe }}-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        <div class="section">-->
+<!--          <h2>Black openings</h2>-->
+<!--          <div class="options-grid">-->
+<!--            {{ black_options|safe }}-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
+      <div id="react-root"></div>
+      <script src="{{ url_for('static', filename='ui/dist/bundle.js') }}"></script>
 
       <div class="field-row">
         <div class="section">

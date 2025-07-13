@@ -11,9 +11,13 @@ import os
 if __package__ is None or __package__ == "":
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import requests
 import html
+
+# Helper to load and walk the trie
+from opening_book.crawler import OPENING_BOOK_FILE
+import json
 
 # When this module is run directly ``__package__`` will be ``None`` and relative
 # imports will fail.  Using absolute imports keeps things working in that
@@ -59,6 +63,48 @@ def create_challenge(username: str) -> Optional[str]:
     json_data = resp.json()
     return json_data.get("url", {})
 
+def load_trie():
+    with open(OPENING_BOOK_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+def get_subtree(node: dict):
+    """Return list of children with uci, optional opening_name."""
+    out = []
+    for uci, child in node.get("children", {}).items():
+        out.append({
+            "uci": uci,
+            "opening_name": child.get("opening_name"),
+        })
+    return out
+
+@app.route("/api/openings")
+def api_openings():
+    side = request.args.get("side")
+    path = request.args.getlist("path[]")  # ["e2e4","g1f3",…]
+    trie = load_trie()
+    # If black, skip white’s first move: e.g. path[0] is white’s 1st, so we start at trie.children[path[0]].children
+    node = trie
+    for move in path:
+        node = node.get("children", {}).get(move, {})
+    return jsonify({
+        "children": get_subtree(node)
+    })
+
+@app.route("/api/openings/search")
+def api_search():
+    q = request.args.get("q", "")
+    limit = int(request.args.get("limit", 50))
+    # reuse your query_db.find_matching_nodes
+    from opening_book.query_db import load_trie, find_matching_nodes
+    trie = load_trie(OPENING_BOOK_FILE)
+    matches = find_matching_nodes(trie, [q])
+    results = []
+    for path, node, _ in matches[:limit]:
+        results.append({
+            "path": path,
+            "opening_name": node.get("opening_name"),
+        })
+    return jsonify({ "matches": results })
 
 @app.route("/", methods=["GET", "POST"])
 def index() -> str:
