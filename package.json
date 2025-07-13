@@ -1,0 +1,19 @@
+{
+  "name": "chess_trainer",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "webpack --mode production",
+    "watch": "webpack --watch"
+  },
+  "dependencies": {
+    "react": "^18.x",
+    "react-dom": "^18.x"
+  },
+  "devDependencies": {
+    "babel-loader": "^8.x",
+    "@babel/core":   "^7.x",
+    "@babel/preset-react": "^7.x",
+    "webpack":       "^5.x",
+    "webpack-cli":   "^4.x"
+  }
+}
