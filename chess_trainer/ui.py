@@ -111,8 +111,13 @@ def index() -> str:
     message: Optional[str] = None
     if request.method == "POST":
         global EVENT_THREAD, STOP_EVENT
-        PROFILE.chosen_white = request.form.getlist("white")
-        PROFILE.chosen_black = request.form.getlist("black")
+        openings = request.form.getlist("openings")
+        if openings:
+            PROFILE.chosen_white = openings
+            PROFILE.chosen_black = openings
+        else:
+            PROFILE.chosen_white = request.form.getlist("white")
+            PROFILE.chosen_black = request.form.getlist("black")
         PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
         username = request.form.get("username", "")
 
@@ -157,8 +162,13 @@ def profile() -> str:
     """Save settings and open the bot profile page in the user's browser."""
     global EVENT_THREAD, STOP_EVENT
 
-    PROFILE.chosen_white = request.form.getlist("white")
-    PROFILE.chosen_black = request.form.getlist("black")
+    openings = request.form.getlist("openings")
+    if openings:
+        PROFILE.chosen_white = openings
+        PROFILE.chosen_black = openings
+    else:
+        PROFILE.chosen_white = request.form.getlist("white")
+        PROFILE.chosen_black = request.form.getlist("black")
     PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
 
     url = f"https://lichess.org/@/{OUR_NAME}"

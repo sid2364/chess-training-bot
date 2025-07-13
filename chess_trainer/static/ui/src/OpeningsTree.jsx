@@ -1,7 +1,7 @@
 // chess_trainer/static/ui/src/OpeningsTree.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 
-function TreeNode({ side, node, path, selectedOpenings, expandedPaths, onToggle }) {
+function TreeNode({ node, path, selectedOpenings, expandedPaths, onToggle }) {
   const [kids, setKids] = useState([]);
   const [manualOpen, setManualOpen] = useState(false);
 
@@ -15,12 +15,11 @@ function TreeNode({ side, node, path, selectedOpenings, expandedPaths, onToggle 
   useEffect(() => {
     if (!isOpen) return;
     fetch(
-      `/api/openings?side=${side}&` +
-      path.map(p => `path[]=${p}`).join("&")
+      `/api/openings?` + path.map(p => `path[]=${p}`).join("&")
     )
       .then(r => r.json())
       .then(d => setKids(d.children));
-  }, [isOpen, path, side]);
+  }, [isOpen, path]);
 
   // Is this exact node selected?
   const isChecked = selectedOpenings.some(
@@ -56,7 +55,6 @@ function TreeNode({ side, node, path, selectedOpenings, expandedPaths, onToggle 
           {kids.map(child => (
             <TreeNode
               key={child.uci}
-              side={side}
               node={child}
               path={[...path, child.uci]}
               selectedOpenings={selectedOpenings}
@@ -70,7 +68,7 @@ function TreeNode({ side, node, path, selectedOpenings, expandedPaths, onToggle 
   );
 }
 
-export default function OpeningsTree({ side }) {
+export default function OpeningsTree() {
   const [roots, setRoots] = useState([]);
   const [selectedOpenings, setSelectedOpenings] = useState([]);
   const [expandedPaths, setExpandedPaths] = useState([]);
@@ -79,10 +77,10 @@ export default function OpeningsTree({ side }) {
 
   // Load first‑move roots
   useEffect(() => {
-    fetch(`/api/openings?side=${side}`)
+    fetch(`/api/openings`)
       .then(r => r.json())
       .then(d => setRoots(d.children));
-  }, [side]);
+  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -114,7 +112,7 @@ export default function OpeningsTree({ side }) {
 
   return (
     <section style={{ marginBottom: "2rem" }}>
-      <h2>{side[0].toUpperCase() + side.slice(1)} openings</h2>
+      <h2>Select openings</h2>
 
       <input
         placeholder="Search…"
@@ -165,7 +163,6 @@ export default function OpeningsTree({ side }) {
         {roots.map(c => (
           <TreeNode
             key={c.uci}
-            side={side}
             node={c}
             path={[c.uci]}
             selectedOpenings={selectedOpenings}
@@ -177,7 +174,10 @@ export default function OpeningsTree({ side }) {
 
       {/* Hidden inputs so Flask sees opening names */}
       {selectedOpenings.map((o, i) => (
-        <input key={i} type="hidden" name={side} value={o.name} />
+        <Fragment key={i}>
+          <input type="hidden" name="white" value={o.name} />
+          <input type="hidden" name="black" value={o.name} />
+        </Fragment>
       ))}
     </section>
   );

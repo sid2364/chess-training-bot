@@ -3,9 +3,4 @@ import { createRoot } from "react-dom/client";
 import OpeningsTree from "./OpeningsTree";
 
 const root = createRoot(document.getElementById("react-root"));
-root.render(
-  <>
-    <OpeningsTree side="white"  />
-    <OpeningsTree side="black"  />
-  </>
-);
+root.render(<OpeningsTree />);
