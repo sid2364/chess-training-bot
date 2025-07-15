@@ -18,8 +18,13 @@ def find_matching_nodes(
                 for t in targets]
 
     def dfs(n: dict, path: List[str]):
-        name = n.get('opening_name') or ""
-        matched = {t for t, p in patterns if p.search(name)}
+        name = n.get('opening_name')
+        # skip any node that has no opening_name
+        if not name:
+            matched = set()
+        else:
+            matched = {t for t, p in patterns if p.search(name)}
+
         if matched:
             out.append((path.copy(), n, matched))
         for uci, child in n.get('children', {}).items():
@@ -88,22 +93,23 @@ def candidate_moves_for_position(
     resp: Dict[str, Dict[str, Any]] = {}
 
     for cont, matched in all_conts:
-        for i in range(len(cont) - k):
-            if cont[i:i+k] == current_seq:
-                nxt = cont[i+k]
-                full_path = cont[:i+k+1]
-                child = get_node_by_path(trie, full_path)
-                stats = child.get('stats')
-                entry = resp.setdefault(nxt, {
-                    'stats': stats,
-                    'continuations': [],
-                    'queried': set()
-                })
-                # record only those targets that actually matched here
-                entry['queried'].update(matched)
-                line = " ".join(cont)
-                if line not in entry['continuations']:
-                    entry['continuations'].append(line)
+        # only look at lines that begin with exactly current_seq
+        if cont[:k] == current_seq and len(cont) > k:
+            nxt = cont[k]
+            full_path = cont[:k+1]
+            child = get_node_by_path(trie, full_path)
+            stats = child.get('stats')
+            entry = resp.setdefault(nxt, {
+                'stats': stats,
+                'continuations': [],
+                'queried': set()
+            })
+            entry['stats'] = [x + y for x, y in zip(entry['stats'], stats)]
+            # record only those targets that actually matched here
+            entry['queried'].update(matched)
+            line = " ".join(cont)
+            if line not in entry['continuations']:
+                entry['continuations'].append(line)
 
     # convert queried sets to sorted lists
     for info in resp.values():
@@ -126,12 +132,13 @@ def choose_book_move(trie_: dict, targets: List[str], current_seq: List[str]) ->
         moves_.append(uci)
         weights.append(sum(stats))
 
+    print(f"Candidate moves for position: {moves_}")
     if not any(weights):
         weights = [1] * len(moves_)
 
     return random.choices(moves_, weights=weights, k=1)[0]
 
-def get_opening_for_moves(trie_: dict, moves_: list[str]) -> Optional[str]:
+def get_opening_name_for_moves(trie_: dict, moves_: list[str]) -> Optional[str]:
     """
     Follow moves down the trie via get_node_by_path.
     If _any_ move isn’t in the book, return None.
@@ -152,7 +159,7 @@ if __name__ == "__main__":
     candidates = candidate_moves_for_position(
         trie=book,
         targets=["Sicilian Defense: Hyperaccelerated Pterodactyl"], # "Hyperaccelerated Dragon", "Italian Game", "Scandinavian",
-        current_seq=["e2e4", "c7c5"]
+        current_seq=['e2e4', 'c7c5', 'b1c3']
     )
     # print(candidates)
     for move, info in candidates.items():
@@ -170,4 +177,4 @@ if __name__ == "__main__":
 
     play = "e2e4 g7g6 g1f3 c7c5 d2d4 f8g7 c2c4"
     moves = play.split()
-    print(f"{play} -> {get_opening_for_moves(trie, moves)}")
+    print(f"{play} -> {get_opening_name_for_moves(trie, moves)}")

@@ -2,7 +2,7 @@ import random
 import os
 import sys
 
-from opening_book.query_db import get_opening_for_moves
+from opening_book.query_db import get_opening_name_for_moves
 
 # When run directly (e.g. ``python chess_trainer/lichess_openings_explorer.py``)
 # we need to add the repository root to ``sys.path`` so that imports of the
@@ -148,13 +148,13 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
 
     # response = fetch_book_moves(play, top_n)
     # first try local database
-    response = get_local_book_moves(board, top_n)
-    if not response:
-        print("Using Lichess API to fetch the best book moves")
-        response = fetch_book_moves(play, top_n)
-    else:
-        print("Found book moves in local DB")
-
+    # response = get_local_book_moves(board, top_n)
+    # if not response:
+    #     print("Using Lichess API to fetch the best book moves")
+    #     response = fetch_book_moves(play, top_n)
+    # else:
+    #     print("Found book moves in local DB")
+    #
     # figure out prefs
     if chess is None:
         prefs = bot_profile.get_clean_openings()[0]
@@ -163,18 +163,20 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
         prefs = white_prefs if bot_profile.our_color == chess.WHITE else black_prefs
 
     # unfiltered UCIs for debug
-    unfiltered_moves = [m['uci'] for m in response]
+    # unfiltered_moves = [m['uci'] for m in response]
 
     # try direct lookup in local database for preferred variation
     if local_db is not None and _LOCAL_BOOK is not None:
         seq = [m.uci() for m in board.move_stack]
+        print("*" * 20)
+        print("Using direct local DB lookup")
+        print(f"Current sequence: {seq}")
         targeted = local_db.choose_book_move(_LOCAL_BOOK, prefs, seq)
         if targeted is not None:
-            print("*" * 20)
-            print(f"Unfiltered: {unfiltered_moves}")
-            print("Using direct local DB lookup")
+            # print(f"Unfiltered: {unfiltered_moves}")
+
             if play is not None:
-                opening_name = local_db.get_opening_for_moves(_LOCAL_BOOK, play.split(','))
+                opening_name = local_db.get_opening_name_for_moves(_LOCAL_BOOK, play.split(','))
                 if opening_name is not None:
                     print(f"Current variation: {opening_name}")
             print(f"Chosen move: {targeted}")
