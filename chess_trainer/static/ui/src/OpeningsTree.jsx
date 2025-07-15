@@ -3,13 +3,19 @@ import React, { useState, useEffect, Fragment } from "react";
 
 function TreeNode({ node, path, selectedOpenings, expandedPaths, onToggle }) {
   const [kids, setKids] = useState([]);
-  const [manualOpen, setManualOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState();
 
   // Should this node auto‑open because of a search “deep‑navigate”?
   const autoOpen = expandedPaths.some(
     ep => ep.length === path.length && ep.every((m,i) => m === path[i])
   );
-  const isOpen = autoOpen || manualOpen;
+  useEffect(() => {
+    if (autoOpen && manualOpen === false) {
+      setManualOpen(undefined);
+    }
+  }, [autoOpen]);
+
+  const isOpen = manualOpen !== undefined ? manualOpen : autoOpen;
 
   // Fetch children when opening
   useEffect(() => {
@@ -33,7 +39,7 @@ function TreeNode({ node, path, selectedOpenings, expandedPaths, onToggle }) {
     <li>
       <span
         style={{ cursor: "pointer", paddingRight: 4 }}
-        onClick={() => setManualOpen(o => !o)}
+        onClick={() => setManualOpen(!isOpen)}
       >
         {isOpen ? "▼" : "▶"}
       </span>
@@ -145,9 +151,7 @@ export default function OpeningsTree() {
                   padding: "4px 8px",
                 }}
                 onClick={() => {
-                  // Select exactly this opening name
-                  setSelectedOpenings([{ path: r.path, name: r.opening_name }]);
-                  // Expand all prefixes so we open down to it
+                  onToggle({ path: r.path, name: r.opening_name });
                   const prefixes = r.path.map((_, i) => r.path.slice(0, i + 1));
                   setExpandedPaths(prefixes);
                 }}
