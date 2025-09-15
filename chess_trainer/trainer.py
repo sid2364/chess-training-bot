@@ -9,6 +9,7 @@ from typing import Optional
 
 # ---- new imports for retry logic ----
 import requests
+from requests import HTTPError
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -125,6 +126,9 @@ def make_move_on_board(board, game_id, chosen_move_uci):
     except ResponseError as e:
         print(f"Could not make move {chosen_move_uci}: {e}; retrying...")
         raise
+    except HTTPError as e:
+        print(f"Lichess returned error: {e}. Won't retry, moving on to the next game!")
+        return
     board.push_uci(chosen_move_uci)
 
 ###############################################
