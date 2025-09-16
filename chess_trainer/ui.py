@@ -119,33 +119,38 @@ def index() -> str:
             PROFILE.chosen_white = request.form.getlist("white")
             PROFILE.chosen_black = request.form.getlist("black")
         PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
-        username = request.form.get("username", "")
+        username = (request.form.get("username", "") or "").strip()
+        PROFILE.allow_all_challengers = bool(request.form.get("allow_all"))
+        PROFILE.allowed_username = username or None
 
-        print(PROFILE)
-        url = create_challenge(username)
-        if not url:
-            message = "Failed to create challenge"
+        if not username:
+            message = "Please provide a username to challenge."
         else:
-            webbrowser.open(url)
+            print(PROFILE)
+            url = create_challenge(username)
+            if not url:
+                message = "Failed to create challenge"
+            else:
+                webbrowser.open(url)
 
-            if EVENT_THREAD is not None and EVENT_THREAD.is_alive():
-                if STOP_EVENT is not None:
-                    STOP_EVENT.set()
-                EVENT_THREAD.join(timeout=0.1)
+                if EVENT_THREAD is not None and EVENT_THREAD.is_alive():
+                    if STOP_EVENT is not None:
+                        STOP_EVENT.set()
+                    EVENT_THREAD.join(timeout=0.1)
 
-            STOP_EVENT = threading.Event()
+                STOP_EVENT = threading.Event()
 
-            def on_game_start(game_id: str) -> None:
-                # webbrowser.open(f"https://lichess.org/{game_id}")
-                pass # we already open the challenge above when we get the url back, so no need to open twice
+                def on_game_start(game_id: str) -> None:
+                    # webbrowser.open(f"https://lichess.org/{game_id}")
+                    pass # we already open the challenge above when we get the url back, so no need to open twice
 
-            EVENT_THREAD = threading.Thread(
-                target=handle_events,
-                args=(PROFILE, on_game_start, STOP_EVENT),
-                daemon=True,
-            )
-            EVENT_THREAD.start()
-            message = "Challenge sent!"
+                EVENT_THREAD = threading.Thread(
+                    target=handle_events,
+                    args=(PROFILE, on_game_start, STOP_EVENT),
+                    daemon=True,
+                )
+                EVENT_THREAD.start()
+                message = "Challenge sent!"
 
     white = build_options(white_openings, "white", PROFILE.chosen_white)
     black = build_options(black_openings, "black", PROFILE.chosen_black)
@@ -155,6 +160,8 @@ def index() -> str:
         black_options=black,
         message=message,
         challenge=PROFILE.challenge,
+        username=PROFILE.allowed_username or "",
+        allow_all=PROFILE.allow_all_challengers,
     )
 
 @app.route("/profile", methods=["POST"])
@@ -170,6 +177,9 @@ def profile() -> str:
         PROFILE.chosen_white = request.form.getlist("white")
         PROFILE.chosen_black = request.form.getlist("black")
     PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
+    username = (request.form.get("username", "") or "").strip()
+    PROFILE.allow_all_challengers = bool(request.form.get("allow_all"))
+    PROFILE.allowed_username = username or None
 
     url = f"https://lichess.org/@/{OUR_NAME}"
     try:
@@ -199,6 +209,8 @@ def profile() -> str:
         black_options=black,
         message="Bot profile saved, ready for challenges!",
         challenge=PROFILE.challenge,
+        username=PROFILE.allowed_username or "",
+        allow_all=PROFILE.allow_all_challengers,
     )
 
 def run_server() -> None:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 # Default opening lists used for interactive setup and filtering
 white_openings = [
@@ -35,6 +35,8 @@ class BotProfile:
     opp_rating: int = 1500
     challenge_rating: int = 1500
     challenge: int = 100
+    allowed_username: Optional[str] = None
+    allow_all_challengers: bool = False
 
     def get_openings_choice_from_user(self) -> None:
         def choose(options: List[str], color_name: str) -> List[str]:
@@ -114,3 +116,20 @@ class BotProfile:
             [self.strip_opening_name(o) for o in self.chosen_white],
             [self.strip_opening_name(o) for o in self.chosen_black],
         )
+
+    def normalized_allowed_username(self) -> Optional[str]:
+        if not self.allowed_username:
+            return None
+        username = self.allowed_username.strip()
+        return username.casefold() if username else None
+
+    def is_challenge_allowed(self, challenger_id: Optional[str]) -> bool:
+        if self.allow_all_challengers:
+            return True
+
+        allowed = self.normalized_allowed_username()
+        if not allowed:
+            return True
+        if not challenger_id:
+            return False
+        return challenger_id.casefold() == allowed

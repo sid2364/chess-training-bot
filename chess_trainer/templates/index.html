@@ -82,6 +82,16 @@
       font-size: var(--font);
       display: block;
     }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .checkbox-label input[type='checkbox'] {
+      width: auto;
+      margin-top: 0;
+    }
     input[type='text'],
     input[type='number'] {
       width: 100%;
@@ -155,7 +165,12 @@
           <h2>Your Lichess username</h2>
           <label for="username">
             <input id="username" type="text" name="username"
-                   value="WolfpackTwentyThree" placeholder="for e.g., DrNykterstein">
+                   value="{{ username|default('') }}" placeholder="for e.g., DrNykterstein">
+          </label>
+          <label class="checkbox-label">
+            <input id="allow_all" type="checkbox" name="allow_all" value="1"
+                   {% if allow_all %}checked{% endif %}>
+            Allow other usernames to challenge (free for all)
           </label>
         </div>
       </div>
