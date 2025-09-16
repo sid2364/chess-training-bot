@@ -211,8 +211,30 @@ def handle_events(
             break
         t = event["type"]
         if t == "challenge":
+            challenge = event.get("challenge", {})
+            challenge_id = challenge.get("id")
+            challenger = challenge.get("challenger", {})
+            challenger_id = challenger.get("id")
+
+            if not challenge_id:
+                print("Received challenge event without an ID; skipping")
+                continue
+
+            if not bot_profile.is_challenge_allowed(challenger_id):
+                name = challenger_id or "unknown"
+                allowed_display = bot_profile.allowed_username or "specified user"
+                print(
+                    f"Declining challenge from {name}; "
+                    f"only accepting challenges from {allowed_display}."
+                )
+                try:
+                    client.bots.decline_challenge(challenge_id)
+                except ResponseError as e:
+                    print(f"Could not decline challenge; skipping - {e}")
+                continue
+
             try:
-                client.bots.accept_challenge(event["challenge"]["id"])
+                client.bots.accept_challenge(challenge_id)
             except ResponseError as e:
                 print(f"Could not accept challenge; skipping - {e}")
             else:
