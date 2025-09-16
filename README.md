@@ -8,11 +8,18 @@ I found that using the complete Lichess database made for a poor choice for this
 
 ## Setup
 
-1. **Install Stockfish 16, Python dependencies, and build the frontend**
+1. **Install Stockfish, Python dependencies, and build the frontend**
    ```bash
    ./setup.sh
    ```
-   The script uses `apt-get` to install Stockfish 16 (via the `stockfish` package), installs the Python requirements listed in `requirements.txt`, and then runs `npm install` followed by `npm run build` to compile the web assets.
+   The helper script first checks whether a Stockfish binary is already available. If not, it will try to install one via `apt-get` (when available) and otherwise prints instructions so you can install it manually and/or set `STOCKFISH_PATH` in your environment. Afterwards the script runs `python -m pip install -r requirements.txt` and, when `npm` is present, installs the frontend packages and builds the production bundle.
+
+   Prefer to run the steps yourself? Install Stockfish using your platform of choice, then run:
+   ```bash
+   python3 -m pip install -r requirements.txt
+   npm install
+   npm run build
+   ```
 
 2. **Configure your environment**
    Copy `.env_example` to `.env` and replace the token value with your Lichess bot token.
@@ -48,7 +55,7 @@ Your browser will open `http://localhost:8000/` where you can pick your preferre
 - `chess_trainer/bot_profile.py` – dataclass describing the bot's settings and default openings.
 - `chess_trainer/openings_explorer.py` – helper module that queries the opening explorer and filters moves by your preferences.
 - `chess_trainer/ui.py` – simple Flask server for configuring and challenging the bot.
-- `setup.sh` – installs Stockfish 16, the required Python packages, and builds the frontend using npm.
+- `setup.sh` – locates/installs Stockfish, installs Python packages, and builds the frontend using npm.
 
 Please leave me feedback or suggestions for future improvements, I would really appreciate it :)
 
