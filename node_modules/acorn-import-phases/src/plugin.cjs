@@ -25,7 +25,7 @@ exports.plugin = function acornImportPhase(options, Parser, tt) {
 
       const phaseId = this.parseIdent();
       if (this.isContextual("from") || this.type === tt.comma) {
-        const defaultSpecifier = this.startNodeAt(phaseId.start, phaseId.loc.start);
+        const defaultSpecifier = this.startNodeAt(phaseId.start, phaseId.loc && phaseId.loc.start);
         defaultSpecifier.local = phaseId;
         this.checkLValSimple(phaseId, /* BIND_LEXICAL */ 2);
 
@@ -74,7 +74,7 @@ exports.plugin = function acornImportPhase(options, Parser, tt) {
 
       if (node.type === "MetaProperty" && (node.property.name === "defer" || node.property.name === "source")) {
         if (this.type === tt.parenL) {
-          const dynImport = this.parseDynamicImport(this.startNodeAt(node.start, node.loc.start));
+          const dynImport = this.parseDynamicImport(this.startNodeAt(node.start, node.loc && node.loc.start));
           dynImport.phase = node.property.name;
           return dynImport;
         } else {

@@ -1,5 +1,6 @@
 const path = require("path");
 module.exports = {
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   entry: "./chess_trainer/static/ui/src/index.jsx",
   output: {
     path: path.resolve(__dirname, "./chess_trainer/static/ui/dist"),
