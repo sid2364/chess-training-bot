@@ -8,11 +8,11 @@ I found that using the complete Lichess database made for a poor choice for this
 
 ## Setup
 
-1. **Install Stockfish, Python dependencies, and build the frontend**
+1. **Install Stockfish, Python dependencies, build the frontend, and prepare the opening book**
    ```bash
    ./setup.sh
    ```
-   The helper script first checks whether a Stockfish binary is already available. If not, it will try to install one via `apt-get` (when available) and otherwise prints instructions so you can install it manually and/or set `STOCKFISH_PATH` in your environment. Afterwards the script runs `python -m pip install -r requirements.txt` and, when `npm` is present, installs the frontend packages and builds the production bundle.
+   The helper script first checks whether a Stockfish binary is already available. If not, it will try to install one via `apt-get` (when available) and otherwise prints instructions so you can install it manually and/or set `STOCKFISH_PATH` in your environment. Afterwards the script runs `python -m pip install -r requirements.txt`, builds the local Masters opening database by running the crawler (skipping the crawl if the JSON file already exists), and, when `npm` is present, installs the frontend packages and builds the production bundle. Set `FORCE_REBUILD_OPENING_BOOK=1` when invoking the script to refresh the database from scratch.
 
    Prefer to run the steps yourself? Install Stockfish using your platform of choice, then run:
    ```bash
@@ -23,12 +23,26 @@ I found that using the complete Lichess database made for a poor choice for this
 
 2. **Configure your environment**
    Copy `.env_example` to `.env` and replace the token value with your Lichess bot token.
-   
+
    Note: You will need to create a Lichess BOT account first, see instructions here: https://lichess.org/api#tag/Bot/operation/botAccountUpgrade
    ```bash
    cp .env_example .env
    # edit .env and set LICHESS_BOT_TOKEN
    ```
+
+## Building or refreshing the local opening database
+
+The bot prefers using a local copy of the Lichess Masters opening explorer to avoid repeated API calls and to guarantee consistent move choices. The JSON file (`opening_book.json`) lives at the repository root.
+
+To (re)build the database manually run:
+
+```bash
+python -m opening_book.crawler
+```
+
+The crawler walks the Masters explorer up to depth 8 by default and may take several minutes. It requires network access and respects the API rate limits by sleeping between bursts of requests. You can safely re-run the command at any time; it resumes from the existing file unless you delete it first.
+
+The setup script (`./setup.sh`) invokes the crawler automatically whenever the file is missing. Pass `FORCE_REBUILD_OPENING_BOOK=1 ./setup.sh` to force a full rebuild.
 ## Running the bot
 
 Execute the package as a module:

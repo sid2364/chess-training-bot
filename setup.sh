@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+BOOK_PATH="$SCRIPT_DIR/opening_book.json"
+
 # --- Install or locate Stockfish ------------------------------------------------------
 command -v stockfish >/dev/null 2>&1 || {
     echo "Stockfish binary not found – attempting to install via apt-get." 
@@ -40,6 +45,24 @@ echo "Installing Python dependencies with $PYTHON_BIN..."
 if ! "$PYTHON_BIN" -m pip install -r requirements.txt; then
     echo "Error: failed to install Python dependencies. Please check your internet connection or proxy settings." >&2
     exit 1
+fi
+
+# --- Opening book ---------------------------------------------------------------------
+FORCE_REBUILD=${FORCE_REBUILD_OPENING_BOOK:-0}
+if [[ $FORCE_REBUILD != 0 ]]; then
+    echo "FORCE_REBUILD_OPENING_BOOK set – rebuilding opening book."
+    rm -f "$BOOK_PATH"
+fi
+
+if [[ ! -f "$BOOK_PATH" ]]; then
+    echo "Building local opening book database (this can take several minutes and requires network access)..."
+    if "$PYTHON_BIN" -m opening_book.crawler; then
+        echo "Opening book created at $BOOK_PATH"
+    else
+        echo "Warning: Failed to build opening book automatically. You can rerun 'python -m opening_book.crawler' later." >&2
+    fi
+else
+    echo "Opening book already present at $BOOK_PATH. Set FORCE_REBUILD_OPENING_BOOK=1 to rebuild."
 fi
 
 # --- Frontend build -------------------------------------------------------------------
