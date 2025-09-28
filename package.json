@@ -2,8 +2,8 @@
   "name": "chess_trainer",
   "version": "0.1.0",
   "scripts": {
-    "build": "webpack --mode production",
-    "watch": "webpack --watch"
+    "build": "node scripts/build-frontend.js",
+    "watch": "node scripts/build-frontend.js --watch"
   },
   "dependencies": {
     "react": "^18.x",
