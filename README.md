@@ -74,3 +74,8 @@ Your browser will open `http://localhost:8000/` where you can pick your preferre
 Please leave me feedback or suggestions for future improvements, I would really appreciate it :)
 
 Enjoy your training games! 
+
+
+## Future Work
+1. Allow white/black challenge instead of random side
+2. Fix db lookup and initial moves play
