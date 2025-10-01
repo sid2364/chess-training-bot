@@ -173,9 +173,24 @@
             Allow other usernames to challenge (free for all)
           </label>
         </div>
+        <div class="section">
+          <h2>Challenge as</h2>
+          <label class="checkbox-label">
+            <input type="radio" name="color" value="random" {% if color == 'random' %}checked{% endif %}>
+            Random side
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" name="color" value="white" {% if color == 'white' %}checked{% endif %}>
+            White
+          </label>
+          <label class="checkbox-label">
+            <input type="radio" name="color" value="black" {% if color == 'black' %}checked{% endif %}>
+            Black
+          </label>
+        </div>
       </div>
 
-      <button type="submit">Start random side challenge</button>
+      <button type="submit">Start challenge</button>
       <button type="submit" formaction="/profile" formmethod="post">Save and go to Lichess BOT</button>
     </form>
   </div>
