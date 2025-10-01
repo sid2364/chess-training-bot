@@ -35,6 +35,7 @@ class BotProfile:
     opp_rating: int = 1500
     challenge_rating: int = 1500
     challenge: int = 100
+    preferred_color: str = "random"
     allowed_username: Optional[str] = None
     allow_all_challengers: bool = False
 
