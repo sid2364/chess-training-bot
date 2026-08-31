@@ -74,7 +74,7 @@ def build_options(name_list: List[str], field: str, selected: Optional[List[str]
         )
     return "\n".join(out)
 
-def create_challenge(username: str) -> Optional[str]:
+def create_challenge(username: str, color: str) -> Optional[str]:
     """Send a challenge to ``username`` using the Lichess API."""
     if not API_TOKEN:
         return None
@@ -84,6 +84,7 @@ def create_challenge(username: str) -> Optional[str]:
         "rated": "false",
         "clock.limit": 600,
         "clock.increment": 5,
+        "color": color,
     }
     resp = requests.post(url, headers=headers, data=data)
     if resp.status_code not in (200, 201):
@@ -151,11 +152,16 @@ def index() -> str:
         PROFILE.allow_all_challengers = bool(request.form.get("allow_all"))
         PROFILE.allowed_username = username or None
 
+        color = request.form.get("color", "random")
+        if color not in {"white", "black", "random"}:
+            color = "random"
+        PROFILE.preferred_color = color
+
         if not username:
             message = "Please provide a username to challenge."
         else:
             print(PROFILE)
-            url = create_challenge(username)
+            url = create_challenge(username, PROFILE.preferred_color)
             if not url:
                 message = "Failed to create challenge"
             else:
@@ -190,7 +196,7 @@ def index() -> str:
         challenge=PROFILE.challenge,
         username=PROFILE.allowed_username or "",
         allow_all=PROFILE.allow_all_challengers,
-        **setup_status(),
+        color=PROFILE.preferred_color,
     )
 
 @app.route("/profile", methods=["POST"])
@@ -209,6 +215,11 @@ def profile() -> str:
     username = (request.form.get("username", "") or "").strip()
     PROFILE.allow_all_challengers = bool(request.form.get("allow_all"))
     PROFILE.allowed_username = username or None
+
+    color = request.form.get("color", "random")
+    if color not in {"white", "black", "random"}:
+        color = "random"
+    PROFILE.preferred_color = color
 
     url = f"https://lichess.org/@/{OUR_NAME}"
     try:
@@ -240,7 +251,7 @@ def profile() -> str:
         challenge=PROFILE.challenge,
         username=PROFILE.allowed_username or "",
         allow_all=PROFILE.allow_all_challengers,
-        **setup_status(),
+        color=PROFILE.preferred_color,
     )
 
 def run_server() -> None:
