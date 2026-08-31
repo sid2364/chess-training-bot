@@ -25,6 +25,7 @@ import json
 from chess_trainer.trainer import (
     API_TOKEN,
     handle_events,
+    resume_ongoing_games,
     OUR_NAME,
     STOCKFISH_PATH,
     stockfish_version,
@@ -35,6 +36,25 @@ app = Flask(__name__)
 PROFILE = BotProfile()
 EVENT_THREAD: Optional[threading.Thread] = None
 STOP_EVENT: Optional[threading.Event] = None
+_STARTUP_RESUME_STARTED = False
+
+
+def start_startup_resume() -> None:
+    """On process start, reconnect to any game already in progress on Lichess.
+
+    Runs in a daemon thread so it never holds up the web server. It only
+    resumes games that already exist; listening for *new* challenges still
+    begins when the user submits the setup form.
+    """
+    global _STARTUP_RESUME_STARTED
+    if _STARTUP_RESUME_STARTED or not API_TOKEN:
+        return
+    _STARTUP_RESUME_STARTED = True
+    threading.Thread(
+        target=lambda: resume_ongoing_games(PROFILE),
+        name="startup-resume",
+        daemon=True,
+    ).start()
 
 def setup_status() -> dict:
     """Report which local prerequisites are actually present.
@@ -75,16 +95,22 @@ def build_options(name_list: List[str], field: str, selected: Optional[List[str]
     return "\n".join(out)
 
 def create_challenge(username: str, color: str) -> Optional[str]:
-    """Send a challenge to ``username`` using the Lichess API."""
+    """Send a challenge to ``username`` using the Lichess API.
+
+    ``color`` is the colour the *human* wants to play, matching the "You play
+    as" control in the UI. Lichess's ``color`` field is the colour the
+    challenger (our bot) gets, so we send the opposite.
+    """
     if not API_TOKEN:
         return None
+    bot_color = {"white": "black", "black": "white"}.get(color, "random")
     url = f"https://lichess.org/api/challenge/{username}"
     headers = {"Authorization": f"Bearer {API_TOKEN}"}
     data = {
         "rated": "false",
         "clock.limit": 600,
         "clock.increment": 5,
-        "color": color,
+        "color": bot_color,
     }
     resp = requests.post(url, headers=headers, data=data)
     if resp.status_code not in (200, 201):
@@ -197,6 +223,7 @@ def index() -> str:
         username=PROFILE.allowed_username or "",
         allow_all=PROFILE.allow_all_challengers,
         color=PROFILE.preferred_color,
+        **setup_status(),
     )
 
 @app.route("/profile", methods=["POST"])
@@ -252,6 +279,7 @@ def profile() -> str:
         username=PROFILE.allowed_username or "",
         allow_all=PROFILE.allow_all_challengers,
         color=PROFILE.preferred_color,
+        **setup_status(),
     )
 
 def run_server() -> None:
@@ -259,6 +287,12 @@ def run_server() -> None:
     threading.Timer(1, lambda: webbrowser.open("http://localhost:8000/")).start() # timer of 1 so we don't see a "connection refused" before Flask starts serving
 
     app.run(host="localhost", port=8000)
+
+
+# Fire this at import time so it covers every entry point (``python -m
+# chess_trainer.ui``, ``python app.py``, a WSGI server importing ``app``).
+# It's a guarded no-op when there's no token or when already started.
+start_startup_resume()
 
 
 if __name__ == "__main__":

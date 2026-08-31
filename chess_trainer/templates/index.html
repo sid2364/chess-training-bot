@@ -226,7 +226,7 @@
     <header class="masthead">
       <div>
         <div class="masthead-title">Chess Training Bot</div>
-        <div class="masthead-sub">Pick the lines you want to drill, set the opponent, send the challenge on Lichess.</div>
+        <div class="masthead-sub">Pick the lines you want to practise, and send a challenge on Lichess.</div>
       </div>
       <div class="masthead-meta">
         <span class="stat {{ 'is-on' if book_available else 'is-off' }}"
@@ -255,46 +255,10 @@
 
     <form class="setup-form" action="/" method="post">
       <div id="react-root"></div>
-      <script src="{{ url_for('static', filename='ui/dist/bundle.js') }}"></script>
-
-      <div class="field-row">
-        <div class="section">
-          <h2>Challenge rating offset</h2>
-          <label for="challenge">
-            <input id="challenge" type="number" name="challenge" value="{{ challenge|default(0) }}">
-          </label>
-        </div>
-        <div class="section">
-          <h2>Your Lichess username</h2>
-          <label for="username">
-            <input id="username" type="text" name="username"
-                   value="{{ username|default('') }}" placeholder="for e.g., DrNykterstein">
-          </label>
-          <label class="checkbox-label">
-            <input id="allow_all" type="checkbox" name="allow_all" value="1"
-                   {% if allow_all %}checked{% endif %}>
-            Allow other usernames to challenge (free for all)
-          </label>
-        </div>
-        <div class="section">
-          <h2>Challenge as</h2>
-          <label class="checkbox-label">
-            <input type="radio" name="color" value="random" {% if color == 'random' %}checked{% endif %}>
-            Random side
-          </label>
-          <label class="checkbox-label">
-            <input type="radio" name="color" value="white" {% if color == 'white' %}checked{% endif %}>
-            White
-          </label>
-          <label class="checkbox-label">
-            <input type="radio" name="color" value="black" {% if color == 'black' %}checked{% endif %}>
-            Black
-          </label>
-        </div>
+      <div class="actions">
+        <button class="btn btn-primary btn-block" type="submit">Start challenge</button>
+        <button class="btn btn-ghost btn-block" type="submit" formaction="/profile" formmethod="post">Save and go to Lichess BOT</button>
       </div>
-
-      <button type="submit">Start challenge</button>
-      <button type="submit" formaction="/profile" formmethod="post">Save and go to Lichess BOT</button>
     </form>
   </div>
 

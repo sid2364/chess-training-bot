@@ -234,12 +234,87 @@ def play_game(game_id, bot_profile: BotProfile):
 
     engine.quit()
 
+###############################################
+#   Reconnecting to games already in progress
+###############################################
+
+# Game ids we currently have a ``play_game`` loop running for. Shared across
+# threads so the startup "resume" pass and the live event stream never both
+# attach to the same game.
+_ACTIVE_GAMES: set[str] = set()
+_ACTIVE_GAMES_LOCK = threading.Lock()
+
+
+def _claim_game(game_id: str) -> bool:
+    """Register ``game_id`` as being played; return ``False`` if already claimed."""
+    with _ACTIVE_GAMES_LOCK:
+        if game_id in _ACTIVE_GAMES:
+            return False
+        _ACTIVE_GAMES.add(game_id)
+        return True
+
+
+def _release_game(game_id: str) -> None:
+    with _ACTIVE_GAMES_LOCK:
+        _ACTIVE_GAMES.discard(game_id)
+
+
+def _play_game_guarded(game_id: str, bot_profile: BotProfile, on_game_start=None) -> None:
+    """Run ``play_game`` once for ``game_id``, with dedup and error isolation."""
+    if not _claim_game(game_id):
+        print(f"Already playing {game_id}; not starting a second loop")
+        return
+    if on_game_start:
+        try:
+            on_game_start(game_id)
+        except Exception:
+            pass
+    try:
+        play_game(game_id, bot_profile)
+    except Exception as e:
+        traceback.print_exc()
+        print(f"Game discontinued, moving on: {e}")
+    finally:
+        _release_game(game_id)
+
+
+def resume_ongoing_games(bot_profile: BotProfile, on_game_start=None) -> None:
+    """Re-attach to any games already in progress on the bot account.
+
+    Lichess replays a ``gameStart`` for in-progress games whenever the event
+    stream re-opens, which already covers a dropped connection. Calling this
+    explicitly (e.g. on app startup) means a restarted process picks its game
+    back up without waiting for the user to submit the setup form again.
+
+    Safe to call with an unconfigured profile: opening-book moves are simply
+    skipped and the engine plays instead. Blocks until each resumed game ends,
+    mirroring ``play_game``'s behaviour in the normal event loop.
+    """
+    if client is None:
+        return
+    try:
+        ongoing = list(client.games.get_ongoing())
+    except Exception as e:
+        print(f"[resume] couldn't fetch ongoing games: {e}")
+        return
+    for game in ongoing:
+        game_id = game.get("gameId") or game.get("fullId")
+        if not game_id:
+            continue
+        print(f"Resuming ongoing game: {game_id}")
+        _play_game_guarded(game_id, bot_profile, on_game_start)
+
+
 def handle_events(
     bot_profile: BotProfile = BotProfile(),
     on_game_start=None,
     stop_event: Optional[threading.Event] = None,
 ):
     print("Listening for events now...")
+    # Pick up anything already in progress before we start streaming, so a
+    # reconnect after a crash/restart/network drop resumes the game right away.
+    if not (stop_event and stop_event.is_set()):
+        resume_ongoing_games(bot_profile, on_game_start)
     for event in robust_stream_incoming_events():
         if stop_event and stop_event.is_set():
             break
@@ -276,16 +351,7 @@ def handle_events(
         elif t == "gameStart":
             game_id = event["game"]["id"]
             print(f"Game started: {game_id}")
-            if on_game_start:
-                try:
-                    on_game_start(game_id)
-                except Exception:
-                    pass
-            try:
-                play_game(game_id, bot_profile)
-            except Exception as e:
-                traceback.print_exc()
-                print(f"Game discontinued, moving on: {e}")
+            _play_game_guarded(game_id, bot_profile, on_game_start)
 
 def main() -> None:
     profile = BotProfile()

@@ -149,7 +149,15 @@ export default function SetupBody({ initial }) {
   useEffect(() => {
     fetch("/api/openings")
       .then((r) => r.json())
-      .then((d) => setRoots(d.children || []))
+      .then((d) => {
+        const children = d.children || [];
+        setRoots(children);
+        // Expand the first move (King's Pawn) by default so the tree opens
+        // with something to look at. Collapsing it still sticks.
+        if (children.length) {
+          setExpandedPaths((prev) => (prev.length ? prev : [[children[0].uci]]));
+        }
+      })
       .catch(() => setRoots([]));
   }, []);
 
