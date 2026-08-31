@@ -56,10 +56,16 @@ def get_node_by_path(trie: dict, path: List[str]) -> dict:
         n = n.get('children', {}).get(move, {})
     return n
 
+def _split_move_path(raw: str) -> List[str]:
+    """Parse a stored move-path target (``"e2e4,e7e5,g1f3"`` or space-joined)."""
+    return [m for m in raw.replace(",", " ").split() if m]
+
+
 def candidate_moves_for_position(
     trie: dict,
     targets: List[str],
-    current_seq: List[str]
+    current_seq: List[str],
+    path_targets: Optional[List[str]] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """
     Returns a mapping:
@@ -111,16 +117,45 @@ def candidate_moves_for_position(
             if line not in entry['continuations']:
                 entry['continuations'].append(line)
 
+    # Explicit move-path targets: moves the user ticked that have no ECO name,
+    # so there is nothing for the name matcher above to catch. A target steers
+    # this position only when we are still on its line, i.e. current_seq is a
+    # strict prefix of it.
+    for raw in (path_targets or []):
+        tp = _split_move_path(raw)
+        if len(tp) <= k or tp[:k] != current_seq:
+            continue
+        nxt = tp[k]
+        child = get_node_by_path(trie, tp[:k + 1])
+        if not child:  # this continuation isn't in the book from here
+            continue
+        stats = child.get('stats') or [0, 0, 0]
+        entry = resp.setdefault(nxt, {
+            'stats': stats,
+            'continuations': [],
+            'queried': set(),
+        })
+        entry['stats'] = [x + y for x, y in zip(entry['stats'], stats)]
+        entry['queried'].add(" ".join(tp))
+        line = " ".join(tp)
+        if line not in entry['continuations']:
+            entry['continuations'].append(line)
+
     # convert queried sets to sorted lists
     for info in resp.values():
         info['queried'] = sorted(info['queried'])
 
     return resp
 
-def choose_book_move(trie_: dict, targets: List[str], current_seq: List[str]) -> Optional[str]:
+def choose_book_move(
+    trie_: dict,
+    targets: List[str],
+    current_seq: List[str],
+    path_targets: Optional[List[str]] = None,
+) -> Optional[str]:
     # Return a weighted random book move leading toward the target openings
     # rather than a set of candidate moves
-    candidates_ = candidate_moves_for_position(trie_, targets, current_seq)
+    candidates_ = candidate_moves_for_position(trie_, targets, current_seq, path_targets)
     # print(f"Candidate moves for position: {candidates_}")
     if not candidates_:
         return None

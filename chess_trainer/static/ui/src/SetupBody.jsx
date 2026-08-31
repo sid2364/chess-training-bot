@@ -103,10 +103,9 @@ function TreeNode({ info, path, depth, ctx }) {
         <span className="tree-caret" onClick={() => setManualOpen(!isOpen)}>
           {isOpen ? "\u25BC" : "\u25B6"}
         </span>
-        <label className={name ? "tree-label" : "tree-label is-plain"}>
+        <label className="tree-label">
           <input
             type="checkbox"
-            disabled={!name}
             checked={isChecked}
             onChange={() => ctx.onToggle({ path, name })}
           />
@@ -173,10 +172,11 @@ export default function SetupBody({ initial }) {
   }, [search]);
 
   const onToggle = useCallback(({ path, name }) => {
-    if (!name) return;
     setSelected((prev) => {
       const existing = prev.find((o) => samePath(o.path, path));
-      return existing ? prev.filter((o) => o !== existing) : [...prev, { path, name }];
+      return existing
+        ? prev.filter((o) => o !== existing)
+        : [...prev, { path, name: name || null }];
     });
     setHover(path);
   }, []);
@@ -207,7 +207,7 @@ export default function SetupBody({ initial }) {
 
           <input
             className="input"
-            placeholder="Search openings: Sicilian, Vienna, Queen's Gambit"
+            placeholder="Search openings: Sicilian, Vienna, Queen's Gambit, etc."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -255,7 +255,7 @@ export default function SetupBody({ initial }) {
                   className="chip"
                   onMouseEnter={() => setHover(o.path)}
                 >
-                  <span className="chip-name">{o.name}</span>
+                  <span className="chip-name">{o.name || "Custom line"}</span>
                   <span className="chip-moves">{numbered(play(o.path).sans)}</span>
                   <span className="chip-x" onClick={() => onToggle(o)}>&times;</span>
                 </span>
@@ -268,11 +268,21 @@ export default function SetupBody({ initial }) {
             </p>
           )}
 
-          {/* Hidden inputs so Flask sees the chosen opening names */}
+          {/* Hidden inputs so Flask sees the picks: named lines go by ECO name,
+              unnamed ("custom") lines go by their move path. */}
           {selected.map((o, i) => (
             <React.Fragment key={i}>
-              <input type="hidden" name="white" value={o.name} />
-              <input type="hidden" name="black" value={o.name} />
+              {o.name ? (
+                <>
+                  <input type="hidden" name="white" value={o.name} />
+                  <input type="hidden" name="black" value={o.name} />
+                </>
+              ) : (
+                <>
+                  <input type="hidden" name="white_path" value={o.path.join(",")} />
+                  <input type="hidden" name="black_path" value={o.path.join(",")} />
+                </>
+              )}
             </React.Fragment>
           ))}
         </section>

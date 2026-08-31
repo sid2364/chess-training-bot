@@ -158,9 +158,13 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
     # figure out prefs
     if chess is None:
         prefs = bot_profile.get_clean_openings()[0]
+        path_prefs = bot_profile.get_opening_paths()[0]
     else:
         white_prefs, black_prefs = bot_profile.get_clean_openings()
-        prefs = white_prefs if bot_profile.our_color == chess.WHITE else black_prefs
+        white_paths, black_paths = bot_profile.get_opening_paths()
+        is_white = bot_profile.our_color == chess.WHITE
+        prefs = white_prefs if is_white else black_prefs
+        path_prefs = white_paths if is_white else black_paths
 
     # unfiltered UCIs for debug
     # unfiltered_moves = [m['uci'] for m in response]
@@ -171,7 +175,7 @@ def get_book_move(board, bot_profile: BotProfile, max_ply=20, top_n=5):
         print("*" * 20)
         print("Using direct local DB lookup")
         print(f"Current sequence: {seq}")
-        targeted = local_db.choose_book_move(_LOCAL_BOOK, prefs, seq)
+        targeted = local_db.choose_book_move(_LOCAL_BOOK, prefs, seq, path_prefs)
         if targeted is not None:
             # print(f"Unfiltered: {unfiltered_moves}")
 

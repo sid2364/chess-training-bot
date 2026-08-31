@@ -31,6 +31,10 @@ black_openings = [
 class BotProfile:
     chosen_white: List[str] = field(default_factory=list)
     chosen_black: List[str] = field(default_factory=list)
+    # Move-path targets ("e2e4,e7e5,g1f3,...") for ticked lines that have no ECO
+    # name and so can't be addressed by ``chosen_white`` / ``chosen_black``.
+    chosen_white_paths: List[str] = field(default_factory=list)
+    chosen_black_paths: List[str] = field(default_factory=list)
     our_color: bool = True  # True = White, False = Black
     opp_rating: int = 1500
     challenge_rating: int = 1500
@@ -117,6 +121,9 @@ class BotProfile:
             [self.strip_opening_name(o) for o in self.chosen_white],
             [self.strip_opening_name(o) for o in self.chosen_black],
         )
+
+    def get_opening_paths(self) -> tuple[List[str], List[str]]:
+        return (list(self.chosen_white_paths), list(self.chosen_black_paths))
 
     def normalized_allowed_username(self) -> Optional[str]:
         if not self.allowed_username:

@@ -161,18 +161,29 @@ def api_search():
         })
     return jsonify({ "matches": results })
 
+def apply_repertoire_from_form(form) -> None:
+    """Copy the ticked openings out of a submitted form into ``PROFILE``.
+
+    ``white`` / ``black`` carry ECO opening names; ``white_path`` / ``black_path``
+    carry raw move paths for ticked lines that have no name.
+    """
+    openings = form.getlist("openings")
+    if openings:
+        PROFILE.chosen_white = openings
+        PROFILE.chosen_black = openings
+    else:
+        PROFILE.chosen_white = form.getlist("white")
+        PROFILE.chosen_black = form.getlist("black")
+    PROFILE.chosen_white_paths = form.getlist("white_path")
+    PROFILE.chosen_black_paths = form.getlist("black_path")
+
+
 @app.route("/", methods=["GET", "POST"])
 def index() -> str:
     message: Optional[str] = None
     if request.method == "POST":
         global EVENT_THREAD, STOP_EVENT
-        openings = request.form.getlist("openings")
-        if openings:
-            PROFILE.chosen_white = openings
-            PROFILE.chosen_black = openings
-        else:
-            PROFILE.chosen_white = request.form.getlist("white")
-            PROFILE.chosen_black = request.form.getlist("black")
+        apply_repertoire_from_form(request.form)
         PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
         username = (request.form.get("username", "") or "").strip()
         PROFILE.allow_all_challengers = bool(request.form.get("allow_all"))
@@ -231,13 +242,7 @@ def profile() -> str:
     """Save settings and open the bot profile page in the user's browser."""
     global EVENT_THREAD, STOP_EVENT
 
-    openings = request.form.getlist("openings")
-    if openings:
-        PROFILE.chosen_white = openings
-        PROFILE.chosen_black = openings
-    else:
-        PROFILE.chosen_white = request.form.getlist("white")
-        PROFILE.chosen_black = request.form.getlist("black")
+    apply_repertoire_from_form(request.form)
     PROFILE.challenge = int(request.form.get("challenge", "0") or 0)
     username = (request.form.get("username", "") or "").strip()
     PROFILE.allow_all_challengers = bool(request.form.get("allow_all"))
