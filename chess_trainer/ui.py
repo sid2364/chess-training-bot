@@ -25,7 +25,9 @@ import json
 from chess_trainer.trainer import (
     API_TOKEN,
     handle_events,
-    OUR_NAME
+    OUR_NAME,
+    STOCKFISH_PATH,
+    stockfish_version,
 )
 from chess_trainer.bot_profile import BotProfile, white_openings, black_openings
 
@@ -33,6 +35,32 @@ app = Flask(__name__)
 PROFILE = BotProfile()
 EVENT_THREAD: Optional[threading.Thread] = None
 STOP_EVENT: Optional[threading.Event] = None
+
+def setup_status() -> dict:
+    """Report which local prerequisites are actually present.
+
+    Drives the badges in the masthead so they reflect the truth instead of
+    being hardcoded: the opening-book database is only "there" if the JSON
+    file exists and is non-empty, and Stockfish is only "there" if a binary
+    was found on this machine.
+    """
+    try:
+        book_available = (
+            os.path.isfile(OPENING_BOOK_FILE) and os.path.getsize(OPENING_BOOK_FILE) > 0
+        )
+    except OSError:
+        book_available = False
+
+    engine_available = bool(STOCKFISH_PATH)
+    version = stockfish_version() if engine_available else None
+
+    return {
+        "book_available": book_available,
+        "book_label": "Masters database",
+        "engine_available": engine_available,
+        "engine_label": f"Stockfish {version}" if version else "Stockfish",
+    }
+
 
 def build_options(name_list: List[str], field: str, selected: Optional[List[str]] = None) -> str:
     out = []
@@ -162,6 +190,7 @@ def index() -> str:
         challenge=PROFILE.challenge,
         username=PROFILE.allowed_username or "",
         allow_all=PROFILE.allow_all_challengers,
+        **setup_status(),
     )
 
 @app.route("/profile", methods=["POST"])
@@ -211,6 +240,7 @@ def profile() -> str:
         challenge=PROFILE.challenge,
         username=PROFILE.allowed_username or "",
         allow_all=PROFILE.allow_all_challengers,
+        **setup_status(),
     )
 
 def run_server() -> None:

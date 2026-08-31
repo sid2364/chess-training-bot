@@ -47,19 +47,49 @@ API_TOKEN = os.getenv("LICHESS_BOT_TOKEN")
 OUR_NAME = os.getenv("LICHESS_BOT_NAME")
 TIME_PER_MOVE = 2
 
-def find_stockfish_binary() -> str:
+def find_stockfish_binary() -> Optional[str]:
+    """Locate a Stockfish binary, or return ``None`` if none is installed.
+
+    The UI needs to render even when the engine is missing, so this no longer
+    raises; callers that actually need the engine (``play_game``) check for
+    ``None`` and fail loudly there instead.
+    """
     env_path = os.getenv("STOCKFISH_PATH")
     if env_path and os.path.isfile(env_path) and os.access(env_path, os.X_OK):
         return env_path
     default = "/usr/games/stockfish"
     if os.path.isfile(default) and os.access(default, os.X_OK):
         return default
-    which = shutil.which("stockfish")
-    if which:
-        return which
-    raise FileNotFoundError(
-        "Could not locate the Stockfish binary! Please install it or set STOCKFISH_PATH."
-    )
+    return shutil.which("stockfish")
+
+
+def stockfish_version(path: Optional[str] = None) -> Optional[str]:
+    """Return the Stockfish version string (e.g. ``"16"``), or ``None``.
+
+    Runs the binary with a ``uci`` handshake and parses the ``id name`` line.
+    """
+    path = path or STOCKFISH_PATH
+    if not path:
+        return None
+    try:
+        import subprocess
+
+        proc = subprocess.run(
+            [path],
+            input="uci\nquit\n",
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if line.lower().startswith("id name ") and "stockfish" in line.lower():
+            # "id name Stockfish 16" / "id name Stockfish 16.1"
+            return line.split("Stockfish", 1)[1].strip() or None
+    return None
+
 
 STOCKFISH_PATH = find_stockfish_binary()
 
@@ -137,6 +167,10 @@ def make_move_on_board(board, game_id, chosen_move_uci):
 
 def play_game(game_id, bot_profile: BotProfile):
     # print("in play_game, bot_profile=", bot_profile)
+    if not STOCKFISH_PATH:
+        raise FileNotFoundError(
+            "Could not locate the Stockfish binary! Please install it or set STOCKFISH_PATH."
+        )
     engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
     stream = robust_stream_game_state(game_id)
 

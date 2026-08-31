@@ -4,180 +4,264 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Chess Training Bot Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Dark mode palette */
-      --bg: #121212;
-      --container-bg: #1e1e1e;
-      --fg: #e0e0e0;
-      --accent: #3399ff;
-      --accent-hover: #287ac6;
-      --border: #333;
-      --radius: 6px;
-      --gap: 1.5rem;
-      --small-gap: 0.5rem; /* for tighter option spacing */
-      --pad: 2rem;
-      --font: 1rem;
-      --maxw: 1100px;
+      --color-bg: #161826;
+      --color-surface: #232532;
+      --color-text: #e9e9ed;
+      --color-accent: #9184d9;
+      --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+      --color-neutral-200: #e4e7f5;
+      --color-neutral-300: #cfd3e5;
+      --color-neutral-400: #b2b6ca;
+      --color-neutral-500: #9397ab;
+      --color-neutral-600: #75798c;
+      --color-neutral-700: #595d6c;
+      --color-neutral-800: #3f424d;
+
+      --color-accent-200: #e7e5fe;
+      --color-accent-300: #d2cefd;
+      --color-accent-600: #796cbf;
+      --color-accent-700: #5d5294;
+      --color-accent-900: #2b2741;
+
+      --font-heading: "Inter", system-ui, sans-serif;
+      --font-heading-weight: 500;
+      --font-body: "Inter", system-ui, sans-serif;
+
+      --space-1: 2.8px;
+      --space-2: 5.6px;
+      --space-3: 8.4px;
+      --space-4: 11.2px;
+      --space-6: 16.8px;
+      --space-8: 22.4px;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+
+      --shadow-sm: 0 0 0 1px #3f424d;
+
+      --square-light: #b2b6ca;
+      --square-dark: #595d6c;
     }
+
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: var(--pad);
-      font-family: 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.55;
+      padding: var(--space-8) var(--space-8) 44.8px;
     }
-    .container {
-      width: 100%;
-      max-width: var(--maxw);
-      background: var(--container-bg);
-      padding: var(--pad);
-      border-radius: calc(var(--radius) * 1.5);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    h1 {
-      font-size: 2rem;
-      text-align: center;
-      margin-bottom: var(--gap);
-    }
+    h1, h2 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); margin: 0; }
+    :focus { outline: none; }
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    ::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+    a { color: var(--color-accent-300); }
+    a:hover { color: var(--color-accent-200); }
+    input[type=range], input[type=checkbox], input[type=radio] { accent-color: var(--color-accent); }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--color-neutral-800); border-radius: 8px; }
 
-    /* 2-column grid *only* for the two openings sections */
-    .openings-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: var(--gap);
-      margin-bottom: var(--gap);
-    }
-    .section {
-      background: var(--bg);
-      padding: var(--pad);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }
-    .section h2 {
-      margin-top: 0;
-      font-size: 1.25rem;
-      margin-bottom: 1rem;
-    }
+    .shell { max-width: 1180px; margin: 0 auto; }
 
-    /* tighter spacing between each checkbox/option */
-    .options-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--small-gap);
+    .masthead {
+      display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-6);
+      padding: var(--space-4) 0 var(--space-6);
+      border-bottom: 1px solid var(--color-divider);
+      margin-bottom: var(--space-8);
     }
+    .masthead-title { font-family: var(--font-heading); font-weight: 500; font-size: 22px; letter-spacing: -0.01em; }
+    .masthead-sub { color: var(--color-neutral-500); font-size: 13px; margin-top: var(--space-1); }
+    .masthead-meta { display: flex; align-items: center; gap: var(--space-4); font-size: 12px; }
+    .stat { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-neutral-600); }
+    .stat.is-on { color: var(--color-neutral-300); }
+    .stat-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-700); }
+    .stat.is-on .stat-dot { background: #5fd08b; box-shadow: 0 0 8px color-mix(in srgb, #5fd08b 70%, transparent); }
+    .stat.is-off .stat-dot { background: #e0666f; box-shadow: 0 0 8px color-mix(in srgb, #e0666f 55%, transparent); }
 
-    /* Elo & username side by side */
-    .field-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: var(--gap);
-    }
-    label {
-      font-size: var(--font);
-      display: block;
-    }
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.75rem;
-    }
-    .checkbox-label input[type='checkbox'] {
-      width: auto;
-      margin-top: 0;
-    }
-    input[type='text'],
-    input[type='number'] {
-      width: 100%;
-      padding: 0.75rem;
-      margin-top: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: #2b2b2b;
-      color: var(--fg);
-      font-size: var(--font);
-    }
-    input::placeholder {
-      color: #888;
-    }
-
-    button {
-      width: 100%;
-      padding: 1rem;
-      margin-top: var(--gap);
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: background 0.2s ease;
-    }
-    button:hover {
-      background: var(--accent-hover);
-    }
     .message {
-      text-align: center;
-      font-weight: bold;
-      margin-bottom: var(--gap);
-      color: var(--accent);
+      margin: 0 0 var(--space-6);
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid var(--color-accent-700);
+      background: var(--color-accent-900);
+      color: var(--color-accent-200);
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
     }
+
+    .setup-form { display: flex; flex-direction: column; gap: var(--space-8); }
+    .columns { display: grid; grid-template-columns: 1.12fr 0.88fr; gap: var(--space-8); align-items: start; }
+    @media (max-width: 900px) { .columns { grid-template-columns: 1fr; } }
+    .col { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+    .col-side { position: sticky; top: var(--space-8); }
+
+    .panel { background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: var(--space-6); }
+    .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
+    .panel-title {
+      font-family: var(--font-heading); font-weight: 500; font-size: 15px;
+      letter-spacing: 0.02em; text-transform: uppercase; color: var(--color-neutral-400);
+    }
+    .panel-note { font-size: 12px; color: var(--color-neutral-500); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      cursor: pointer; text-decoration: none;
+      font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+      font-size: 14px; line-height: 1.2; color: var(--color-text);
+      background: transparent; border: 1px solid transparent;
+      padding: var(--space-2) calc(var(--space-3) * 1.2);
+      border-radius: var(--radius-md);
+    }
+    .btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
+    .btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+    .btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
+    .btn-ghost { color: var(--color-accent); }
+    .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+    .btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+    .btn-block { width: 100%; padding: var(--space-3) var(--space-4); }
+    .actions { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; max-width: 400px; align-self: center; }
+
+    .field > label { display: block; font-size: 12px; margin-bottom: 5px; color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+    .input {
+      width: 100%; min-height: 36px; padding: 6px 10px; font: inherit; font-size: 14px;
+      color: var(--color-text); caret-color: var(--color-accent);
+      background: color-mix(in srgb, var(--color-text) 5%, transparent);
+      border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+    }
+    .input::placeholder { color: var(--color-neutral-600); }
+    .input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+    .input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+
+    .checkline { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4); font-size: 13px; color: var(--color-neutral-300); }
+    .checkline input { margin: 0; width: 14px; height: 14px; }
+
+    /* — openings tree — */
+    .tree { margin-top: var(--space-4); max-height: 420px; overflow-y: auto; padding-right: var(--space-1); }
+    .tree-row {
+      display: flex; align-items: center; gap: var(--space-3);
+      padding: 4px var(--space-2); border-radius: var(--radius-sm);
+      border-left: 2px solid transparent;
+    }
+    .tree-row:hover { background: var(--color-accent-900); }
+    .tree-row.is-hovered { background: var(--color-accent-900); }
+    .tree-row.is-checked { border-left-color: var(--color-accent); }
+    .tree-caret { width: 16px; flex: none; text-align: center; font-size: 9px; color: var(--color-neutral-500); cursor: pointer; user-select: none; }
+    .tree-label { display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 0; padding: 1.4px 0; cursor: pointer; }
+    .tree-label.is-plain { cursor: default; }
+    .tree-label input { flex: none; margin: 0; width: 14px; height: 14px; }
+    .tree-move { font-family: var(--font-heading); font-size: 13.5px; font-variant-numeric: tabular-nums; color: var(--color-neutral-200); min-width: 44px; }
+    .is-checked .tree-move { color: var(--color-accent-200); }
+    .tree-name { font-size: 12.5px; color: var(--color-neutral-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-empty { font-size: 12px; color: var(--color-neutral-600); padding: 2px var(--space-2); }
+
+    /* — search results — */
+    .results { list-style: none; margin: var(--space-3) 0 0; padding: var(--space-1); max-height: 196px; overflow-y: auto; border: 1px solid var(--color-divider); border-radius: var(--radius-sm); }
+    .result { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); cursor: pointer; }
+    .result:hover { background: var(--color-accent-900); }
+    .result-mark { width: 14px; height: 14px; flex: none; border-radius: 3px; border: 1px solid var(--color-neutral-600); }
+    .result.is-selected .result-mark { border-color: var(--color-accent); background: var(--color-accent); }
+    .result-name { font-size: 13.5px; }
+    .result-moves { font-size: 12px; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; margin-left: auto; }
+
+    /* — selected chips — */
+    .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .chip {
+      display: inline-flex; align-items: center; gap: var(--space-3);
+      padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+      border-radius: 999px; border: 1px solid var(--color-accent-700);
+      background: var(--color-accent-900); font-size: 12.5px;
+      white-space: nowrap; max-width: 100%; min-width: 0;
+    }
+    .chip-name { color: var(--color-accent-200); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .chip-moves { color: var(--color-neutral-500); font-variant-numeric: tabular-nums; }
+    .chip-x { cursor: pointer; color: var(--color-neutral-400); font-size: 14px; line-height: 1; padding: 0 2px; }
+    .chip-x:hover { color: var(--color-accent-200); }
+    .empty-note { margin: 0; font-size: 13px; color: var(--color-neutral-500); max-width: 52ch; text-wrap: pretty; }
+
+    /* — board — */
+    .board { display: grid; grid-template-columns: repeat(8, 1fr); border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .square { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 39px; line-height: 1; }
+    .square.light { background: var(--square-light); }
+    .square.dark { background: var(--square-dark); }
+    .square.light.hit { background: color-mix(in srgb, var(--color-accent) 42%, var(--square-light)); }
+    .square.dark.hit { background: color-mix(in srgb, var(--color-accent) 42%, var(--square-dark)); }
+    .piece-w { color: #f3f5fe; text-shadow: 0 1px 1px rgba(0,0,0,0.55); }
+    .piece-b { color: #191b24; }
+    .line-name { margin-top: var(--space-4); font-family: var(--font-heading); font-size: 15px; }
+    .line-moves { margin-top: var(--space-1); font-size: 13px; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; text-wrap: pretty; }
+
+    /* — strength — */
+    .strength-value { display: flex; align-items: baseline; gap: var(--space-3); }
+    .strength-number { font-family: var(--font-heading); font-size: 26px; color: var(--color-accent-300); font-variant-numeric: tabular-nums; }
+    .strength-unit { font-size: 12.5px; color: var(--color-neutral-500); }
+    .strength-slider { width: 100%; margin: var(--space-3) 0 0; }
+    .strength-scale { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--color-neutral-600); font-variant-numeric: tabular-nums; }
+    .strength-phrase { margin-top: var(--space-3); font-size: 13px; color: var(--color-neutral-400); }
+
+    /* — opponent — */
+    .opponent-grid { display: grid; grid-template-columns: 1fr auto; gap: var(--space-6); align-items: start; }
+    @media (max-width: 620px) { .opponent-grid { grid-template-columns: 1fr; } }
+    .sub-label { font-size: 12.5px; color: var(--color-neutral-400); margin-bottom: var(--space-3); }
+    .sides { display: grid; grid-template-columns: repeat(3, minmax(72px, 1fr)); gap: var(--space-1); }
+    .side-opt {
+      display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+      padding: var(--space-3) var(--space-2); border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 13px;
+      border: 1px solid var(--color-neutral-800); color: var(--color-neutral-300);
+    }
+    .side-opt:hover { border-color: var(--color-accent-600); }
+    .side-opt input { display: none; }
+    .side-opt.is-on { border-color: var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Chess Training Bot Setup</h1>
+  <div class="shell">
+    <header class="masthead">
+      <div>
+        <div class="masthead-title">Chess Training Bot</div>
+        <div class="masthead-sub">Pick the lines you want to drill, set the opponent, send the challenge on Lichess.</div>
+      </div>
+      <div class="masthead-meta">
+        <span class="stat {{ 'is-on' if book_available else 'is-off' }}"
+              title="{{ 'Local opening-book database is loaded.' if book_available else 'No local database — run setup.sh to build opening_book.json.' }}">
+          <span class="stat-dot"></span>{{ book_label }}
+        </span>
+        <span class="stat {{ 'is-on' if engine_available else 'is-off' }}"
+              title="{{ 'Stockfish engine detected.' if engine_available else 'Stockfish not found — install it or set STOCKFISH_PATH.' }}">
+          <span class="stat-dot"></span>{{ engine_label }}
+        </span>
+      </div>
+    </header>
+
     {% if message %}
     <p class="message">{{ message }}</p>
     {% endif %}
-    <form action="/" method="post">
-<!--      <div class="openings-grid">-->
-<!--        <div class="section">-->
-<!--          <h2>White openings</h2>-->
-<!--          <div class="options-grid">-->
-<!--            {{ white_options|safe }}-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="section">-->
-<!--          <h2>Black openings</h2>-->
-<!--          <div class="options-grid">-->
-<!--            {{ black_options|safe }}-->
-<!--          </div>-->
-<!--        </div>-->
-<!--      </div>-->
+
+    <script id="initial-state" type="application/json">
+      {
+        "challenge": {{ challenge|default(0)|tojson }},
+        "username": {{ (username|default(''))|tojson }},
+        "allowAll": {{ (allow_all|default(false))|tojson }},
+        "color": {{ (color|default('random'))|tojson }}
+      }
+    </script>
+
+    <form class="setup-form" action="/" method="post">
       <div id="react-root"></div>
-      <script src="{{ url_for('static', filename='ui/dist/bundle.js') }}"></script>
-
-      <div class="field-row">
-        <div class="section">
-          <h2>Challenge rating offset</h2>
-          <label for="challenge">
-            <input id="challenge" type="number" name="challenge" value="{{ challenge|default(0) }}">
-          </label>
-        </div>
-        <div class="section">
-          <h2>Your Lichess username</h2>
-          <label for="username">
-            <input id="username" type="text" name="username"
-                   value="{{ username|default('') }}" placeholder="for e.g., DrNykterstein">
-          </label>
-          <label class="checkbox-label">
-            <input id="allow_all" type="checkbox" name="allow_all" value="1"
-                   {% if allow_all %}checked{% endif %}>
-            Allow other usernames to challenge (free for all)
-          </label>
-        </div>
+      <div class="actions">
+        <button class="btn btn-primary btn-block" type="submit">Start challenge</button>
+        <button class="btn btn-ghost btn-block" type="submit" formaction="/profile" formmethod="post">Save and go to Lichess BOT</button>
       </div>
-
-      <button type="submit">Start random side challenge</button>
-      <button type="submit" formaction="/profile" formmethod="post">Save and go to Lichess BOT</button>
     </form>
   </div>
+
+  <script src="{{ url_for('static', filename='ui/dist/bundle.js') }}"></script>
 </body>
 </html>
